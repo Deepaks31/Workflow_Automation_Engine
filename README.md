@@ -82,7 +82,7 @@ VS Code (Frontend)
 IntelliJ IDEA (Backend)
 
 📂 Project Structure
-Workflow_Automation/
+Workflow_Automation/ <br>
 │
 ├── frontend/
 │   ├── src/
