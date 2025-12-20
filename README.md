@@ -1,69 +1,34 @@
 🚀 Enterprise Workflow Automation Engine
 
-An Enterprise Workflow Automation Engine designed to automate and manage multi-level approval workflows with role-based access, escalations, and real-time tracking.
-This system enables organizations to configure workflows dynamically and streamline approval processes across departments like Initiator, Manager, Finance, and Admin.
+An enterprise-level workflow system to manage multi-level approvals with role-based access, escalations, and real-time tracking.
 
-📌 Features
-🔐 Authentication & Authorization
+✨ Features
 
-Role-based login (Admin, Initiator, Manager, Finance)
+Role-based authentication (Admin, Initiator, Manager, Finance)
 
-Secure access using user roles
+Configurable multi-level workflows
 
-Protected routes on frontend
+Request approval & rejection flow
 
-🧩 Workflow Management
+Automatic escalation on SLA breach
 
-Create configurable workflows
+Dedicated dashboards for each role
 
-Define multiple approval levels
+Real-time request tracking
 
-Conditional approvals based on request data
+🛠 Tech Stack
 
-Escalation handling for delayed approvals
-
-📨 Request Handling
-
-Initiators can submit requests
-
-Managers & Finance teams can review, approve, or reject
-
-View detailed request information in modal view
-
-Auto refresh of pending requests
-
-⏱️ Escalation System
-
-Automatic escalation if approval exceeds defined SLA
-
-Escalation status visible to approvers
-
-📊 Dashboards
-
-Admin Dashboard – workflow configuration & monitoring
-
-Manager Dashboard – pending approvals
-
-Finance Dashboard – financial approvals
-
-Initiator Dashboard – request tracking
-
-🛠️ Tech Stack
 Frontend
 
-⚛️ React (Vite)
+React (Vite)
 
 Axios
 
-Tailwind CSS / Custom CSS
-
-Role-based routing
+Tailwind CSS
 
 Backend
 
-☕ Spring Boot
-
-RESTful APIs
+Spring Boot
 
 JPA / Hibernate
 
@@ -71,19 +36,10 @@ Maven
 
 Database
 
-🐬 MySQL
+MySQL
 
-Tools
-
-Git & GitHub
-
-VS Code (Frontend)
-
-IntelliJ IDEA (Backend)
-
-📂 Project Structure
-Workflow_Automation/ <br>
-│
+📁 Project Structure
+Workflow_Automation/
 ├── frontend/
 │   ├── src/
 │   ├── public/
@@ -92,19 +48,17 @@ Workflow_Automation/ <br>
 │
 ├── backend/
 │   └── auto/
-│       ├── src/main/java
-│       ├── src/main/resources
+│       ├── src/main/java/
+│       ├── src/main/resources/
 │       ├── pom.xml
 │       └── mvnw
 │
 └── README.md
 
-⚙️ Setup Instructions
-🔧 Backend (Spring Boot)
+⚙️ Setup
+Backend
 
-Open backend project in IntelliJ IDEA
-
-Configure MySQL database
+Open backend in IntelliJ IDEA
 
 Create application.properties (ignored by Git)
 
@@ -114,68 +68,48 @@ spring.datasource.password=your_password
 spring.jpa.hibernate.ddl-auto=update
 
 
-Run the application:
+Run:
 
 ./mvnw spring-boot:run
 
 
-Backend runs on:
+Backend → http://localhost:8080
 
-http://localhost:8080
+Frontend
 
-🎨 Frontend (React)
-
-Open frontend folder in VS Code
+Open frontend in VS Code
 
 Install dependencies:
 
 npm install
 
 
-Start development server:
+Start app:
 
 npm run dev
 
 
-Frontend runs on:
+Frontend → http://localhost:5173
 
-http://localhost:5173
+🔁 Sample APIs
 
-🔁 API Overview (Sample)
-Method	Endpoint	Description
-GET	/api/requests/pending/manager/{id}	Manager pending requests
-GET	/api/requests/pending/finance/{id}/view	Finance pending requests
-PUT	/api/requests/{id}/approve	Approve request
-PUT	/api/requests/{id}/reject	Reject request
-🔒 Security Notes
+GET /api/requests/pending/manager/{id}
 
-Sensitive files like application.properties are ignored using .gitignore
+GET /api/requests/pending/finance/{id}/view
 
-Credentials should never be committed
+PUT /api/requests/{id}/approve
 
-Use environment variables or Spring profiles for production
+PUT /api/requests/{id}/reject
 
-🚧 Future Enhancements
+🔒 Security
 
-Email notifications for approvals & escalations
+application.properties is ignored
 
-Audit logs & reports
+Never commit credentials
 
-Workflow visualization UI
-
-SLA analytics dashboard
-
-Docker support
-
-OAuth / JWT authentication
+Use environment variables for production
 
 👨‍💻 Author
 
 Deepak S
-B.Tech Information Technology
-Passionate about Full-Stack Development & Enterprise Applications
-
-📜 License
-
-This project is developed for academic and learning purposes.
-You are free to modify and extend it.
+B.Tech – Information Technology
