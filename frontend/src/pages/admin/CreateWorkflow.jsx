@@ -22,7 +22,7 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
       setConditionField(workflow.conditionField || "amount");
       setConditionOperator(workflow.conditionOperator || ">");
       setAmount(workflow.conditionValue ?? "");
-      setEscalation(workflow.escalation || "");
+      setEscalation(workflow.escalationHours ?? "");
 
       setApprovals(
           workflow.approvalLevels?.length
@@ -77,7 +77,7 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
       conditionField,
       conditionOperator,
       conditionValue: parseFloat(amount),
-      escalation,
+      escalationHours: Number(escalation),
       createdBy: "Admin",
       approvalLevels: approvals.map((a, index) => ({
         levelNo: index + 1,
