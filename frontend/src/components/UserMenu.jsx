@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 
+
 export default function UserMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
@@ -12,7 +13,7 @@ export default function UserMenu() {
 
   const logout = () => {
     localStorage.clear();
-    navigate("/login");
+    navigate("/");
   };
 
   // Close dropdown on outside click
