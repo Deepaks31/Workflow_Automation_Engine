@@ -4,39 +4,44 @@ import axios from "axios";
 import StartRequestModal from "./StartRequestModal";
 import UserMenu from "../../components/UserMenu";
 
-
 export default function InitiatorDashboard() {
   const [workflows, setWorkflows] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [viewRemarks, setViewRemarks] = useState(null);
+
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const initiatorId = Number(localStorage.getItem("userId"));
 
   useEffect(() => {
-    axios.get("http://localhost:8080/api/workflows")
-      .then(res => setWorkflows(res.data));
+    axios
+      .get("http://localhost:8080/api/workflows")
+      .then((res) => setWorkflows(res.data));
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = viewRemarks ? "hidden" : "auto";
+    return () => (document.body.style.overflow = "auto");
+  }, [viewRemarks]);
+
   const loadRequests = () => {
-  axios
-    .get(`http://localhost:8080/api/requests/initiator/${initiatorId}`)
-    .then(res => setRequests(res.data));
-    };
+    axios
+      .get(`http://localhost:8080/api/requests/initiator/${initiatorId}`)
+      .then((res) => setRequests(res.data));
+  };
 
-    useEffect(() => {
-      loadRequests();
-    }, []);
+  useEffect(() => {
+    loadRequests();
+  }, []);
 
-    const deleteRequest = (requestId) => {
-  if (!window.confirm("Are you sure you want to delete this request?")) return;
+  const deleteRequest = (requestId) => {
+    if (!window.confirm("Are you sure you want to delete this request?"))
+      return;
 
-      axios
-        .delete(`http://localhost:8080/api/requests/${requestId}`)
-        .then(() => loadRequests())
-        .catch(err => console.error(err));
-    };
-
-
-
+    axios
+      .delete(`http://localhost:8080/api/requests/${requestId}`)
+      .then(() => loadRequests())
+      .catch((err) => console.error(err));
+  };
 
   return (
     <>
@@ -48,7 +53,7 @@ export default function InitiatorDashboard() {
         </div>
 
         <div className="grid">
-          {workflows.map(w => (
+          {workflows.map((w) => (
             <div key={w.id} className="card">
               <h3>{w.name}</h3>
               <p>{w.description}</p>
@@ -67,40 +72,49 @@ export default function InitiatorDashboard() {
         </div>
         <h3 style={{ marginTop: "40px" }}>My Submitted Requests</h3>
 
-          <div className="grid">
-            {requests.map(r => {
-              const wf = workflows.find(w => w.id === r.workflowId);
+        <div className="grid">
+          {requests.map((r) => {
+            const wf = workflows.find((w) => w.id === r.workflowId);
 
-              return (
-                <div key={r.id} className="card">
-                  <h3>{wf?.name || "Request"}</h3>
-                  <h5>{wf?.description || ""}</h5>
-                  <p className="condition">
-                      Status: <strong>{r.status}</strong><br /><br />
-                      Current Level: <strong>{r.currentLevel}</strong>
-                    </p>
-                   <button
+            return (
+              <div key={r.id} className="card">
+                <h3>{wf?.name || "Request"}</h3>
+                <h5>{wf?.description || ""}</h5>
+                <p className="condition">
+                  Status: <strong>{r.status}</strong>
+                  <br />
+                  <br />
+                  Current Level: <strong>{r.currentLevel}</strong>
+                </p>
+                {r.status === "REJECTED" && r.remarks && (
+                  <button
                     className="delete-btn"
-                    onClick={() => deleteRequest(r.id)}
+                    onClick={() => setViewRemarks(r.remarks)}
                   >
-                    🗑 Delete Request
+                    Rejection Reason
                   </button>
-                </div>
-              );
-            })}
-          </div>
+                )}
 
+                <button
+                  className="delete-btn"
+                  onClick={() => deleteRequest(r.id)}
+                >
+                  🗑 Delete Request
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {selectedWorkflow && (
         <StartRequestModal
-            workflow={selectedWorkflow}
-            onClose={() => {
-              setSelectedWorkflow(null);
-              loadRequests(); // refresh submitted requests
-            }}
+          workflow={selectedWorkflow}
+          onClose={() => {
+            setSelectedWorkflow(null);
+            loadRequests(); // refresh submitted requests
+          }}
         />
-
       )}
 
       <style>{`
@@ -179,8 +193,69 @@ export default function InitiatorDashboard() {
 
         .delete-btn:hover {
           background: #fecaca;
+
         }
+        .overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+        }
+
+        .modal {
+          background: #ffffff;
+          padding: 24px;
+          border-radius: 14px;
+          width: 420px;
+          max-width: 90%;
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+          animation: scaleIn 0.2s ease-out;
+        }
+
+        .cancel {
+          background: #2563eb;
+          color: white;
+          border: none;
+          padding: 8px 14px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .cancel:hover {
+          background: #1e40af;
+        }
+
+        @keyframes scaleIn {
+          from {
+            transform: scale(0.95);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
       `}</style>
+      {viewRemarks && (
+        <div className="overlay">
+          <div className="modal">
+            <h3 style={{ marginBottom: "12px" }}>Rejection Reason</h3>
+
+            <p style={{ color: "#374151", fontSize: "15px" }}>{viewRemarks}</p>
+
+            <div style={{ marginTop: "20px", textAlign: "right" }}>
+              <button className="cancel" onClick={() => setViewRemarks(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

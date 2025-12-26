@@ -5,6 +5,8 @@ import UserMenu from "../../components/UserMenu";
 export default function FinanceDashboard() {
   const [requests, setRequests] = useState([]);
   const [activeRequest, setActiveRequest] = useState(null);
+  const [remarks, setRemarks] = useState("");
+  const [showRejectBox, setShowRejectBox] = useState(false);
 
   const financeApproverId = Number(localStorage.getItem("userId"));
 
@@ -19,18 +21,42 @@ export default function FinanceDashboard() {
       .get(
         `http://localhost:8080/api/requests/pending/finance/${financeApproverId}/view`
       )
-      .then(res => setRequests(res.data))
+      .then((res) => setRequests(res.data))
       .catch(console.error);
   };
 
-  const takeAction = async (id, action) => {
+  const approveRequest = async () => {
     await axios.put(
-      `http://localhost:8080/api/requests/${id}/${action}`,
-      { approverId: financeApproverId }
+      `http://localhost:8080/api/requests/${activeRequest.id}/approve`,
+      { financeApproverId }
     );
 
-    alert(`Request ${action.toUpperCase()}ED`);
+    alert("Request APPROVED");
+    closeModal();
+  };
+
+  const rejectRequest = async () => {
+    if (!remarks.trim()) {
+      alert("Remarks are required");
+      return;
+    }
+
+    await axios.put(
+      `http://localhost:8080/api/requests/${activeRequest.id}/reject`,
+      {
+        financeApproverId,
+        remarks,
+      }
+    );
+
+    alert("Request REJECTED");
+    closeModal();
+  };
+
+  const closeModal = () => {
     setActiveRequest(null);
+    setRemarks("");
+    setShowRejectBox(false);
     loadRequests();
   };
 
@@ -43,7 +69,7 @@ export default function FinanceDashboard() {
         <p>Pending requests for finance approval</p>
 
         <div className="grid">
-          {requests.map(r => {
+          {requests.map((r) => {
             const req = r.request;
             const data = JSON.parse(req.requestData);
 
@@ -54,7 +80,7 @@ export default function FinanceDashboard() {
                 onClick={() =>
                   setActiveRequest({
                     ...req,
-                    initiatorName: r.initiatorName
+                    initiatorName: r.initiatorName,
                   })
                 }
               >
@@ -85,84 +111,139 @@ export default function FinanceDashboard() {
       </div>
 
       {/* ================= POPUP ================= */}
-      {activeRequest && (() => {
-        const data = JSON.parse(activeRequest.requestData);
+      {activeRequest &&
+        (() => {
+          const data = JSON.parse(activeRequest.requestData);
 
-        return (
-          <div className="overlay">
-            <div className="modal">
-              <h3>Request Details</h3>
+          return (
+            <div className="overlay">
+              <div className="modal">
+                <h3>Request Details</h3>
 
-              <div className="detail">
-                <span>Workflow</span>
-                <strong>{activeRequest.workflowId}</strong>
-              </div>
-
-              <div className="detail">
-                <span>Initiator ID</span>
-                <strong>{activeRequest.initiatorId}</strong>
-              </div>
-
-              <div className="detail">
-                <span>Initiator Name</span>
-                <strong>{activeRequest.initiatorName}</strong>
-              </div>
-
-              {data.amount && (
                 <div className="detail">
-                  <span>Amount</span>
-                  <strong>₹ {data.amount}</strong>
+                  <span>Workflow</span>
+                  <strong>{activeRequest.workflowId}</strong>
                 </div>
-              )}
 
-              {data.leaveDays && (
                 <div className="detail">
-                  <span>Leave Days</span>
-                  <strong>{data.leaveDays}</strong>
+                  <span>Initiator ID</span>
+                  <strong>{activeRequest.initiatorId}</strong>
                 </div>
-              )}
 
-              {data.fromDate && (
                 <div className="detail">
-                  <span>From Date</span>
-                  <strong>{data.fromDate}</strong>
+                  <span>Initiator Name</span>
+                  <strong>{activeRequest.initiatorName}</strong>
                 </div>
-              )}
 
-              {data.reason && (
-                <div className="detail">
-                  <span>Reason</span>
-                  <strong>{data.reason}</strong>
+                {data.amount && (
+                  <div className="detail">
+                    <span>Amount</span>
+                    <strong>₹ {data.amount}</strong>
+                  </div>
+                )}
+
+                {data.leaveDays && (
+                  <div className="detail">
+                    <span>Leave Days</span>
+                    <strong>{data.leaveDays}</strong>
+                  </div>
+                )}
+
+                {data.fromDate && (
+                  <div className="detail">
+                    <span>From Date</span>
+                    <strong>{data.fromDate}</strong>
+                  </div>
+                )}
+
+                {data.reason && (
+                  <div className="detail">
+                    <span>Reason</span>
+                    <strong>{data.reason}</strong>
+                  </div>
+                )}
+                {showRejectBox && (
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      animation: "fadeSlideIn 0.25s ease",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "#374151",
+                        display: "block",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Rejection Remarks
+                    </label>
+
+                    <textarea
+                      autoFocus
+                      value={remarks}
+                      onChange={(e) => {
+                        setRemarks(e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                      }}
+                      placeholder="Clearly mention the reason for rejection..."
+                      style={{
+                        width: "90%",
+                        minHeight: "70px",
+                        maxHeight: "160px",
+                        resize: "none",
+                        padding: "12px",
+                        borderRadius: "12px",
+                        border: "1.5px solid #d1d5db",
+                        fontFamily: "inherit",
+                        fontSize: "14px",
+                        lineHeight: "1.5",
+                        background: "#f9fafb",
+                        transition: "all 0.2s ease",
+                        outline: "none",
+                      }}
+                      onFocus={(e) =>
+                        (e.target.style.border = "1.5px solid #2563eb")
+                      }
+                      onBlur={(e) =>
+                        (e.target.style.border = "1.5px solid #d1d5db")
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="actions">
+                  <button className="approve" onClick={approveRequest}>
+                    Approve
+                  </button>
+
+                  {!showRejectBox && (
+                    <button
+                      className="reject"
+                      onClick={() => setShowRejectBox(true)}
+                    >
+                      Reject
+                    </button>
+                  )}
+
+                  {showRejectBox && (
+                    <button className="reject" onClick={rejectRequest}>
+                      Confirm Reject
+                    </button>
+                  )}
+
+                  <button className="cancel" onClick={closeModal}>
+                    Close
+                  </button>
                 </div>
-              )}
-
-              <div className="actions">
-                <button
-                  className="approve"
-                  onClick={() => takeAction(activeRequest.id, "approve")}
-                >
-                  Approve
-                </button>
-
-                <button
-                  className="reject"
-                  onClick={() => takeAction(activeRequest.id, "reject")}
-                >
-                  Reject
-                </button>
-
-                <button
-                  className="cancel"
-                  onClick={() => setActiveRequest(null)}
-                >
-                  Close
-                </button>
               </div>
             </div>
-          </div>
-        );
-      })()}
-    
+          );
+        })()}
+
       <style>{`
         .page {
           padding: 32px;

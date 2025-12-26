@@ -32,6 +32,8 @@ public class Request {
 
     private LocalDateTime createdAt;
     private LocalDateTime lastActionAt;
+    private String remarks;
+
 
     @Lob
     @Column(columnDefinition = "TEXT")

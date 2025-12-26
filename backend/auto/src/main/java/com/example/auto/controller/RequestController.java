@@ -1,5 +1,6 @@
 package com.example.auto.controller;
 
+import com.example.auto.dto.ActionRequestDto;
 import com.example.auto.dto.RequestDTO;
 import com.example.auto.model.AuditLog;
 import com.example.auto.model.Request;
@@ -55,9 +56,10 @@ public class RequestController {
 
     @PutMapping("/{id}/reject")
     public Request reject(@PathVariable Long id,
-                          @RequestBody Map<String, Long> body) {
-        return service.reject(id, body.get("approverId"));
+                          @RequestBody ActionRequestDto dto) {
+        return service.reject(id, dto);
     }
+
 
     // ✅ MANAGER
     @GetMapping("/pending/manager/{managerId}/view")

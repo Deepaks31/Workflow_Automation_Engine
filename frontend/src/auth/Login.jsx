@@ -169,8 +169,26 @@ export default function Login() {
           text-decoration: none;
           font-weight: 500;
         }
-      `}</style>
+           .brand-top {
+          position: fixed;
+          top: 24px;
+          left: 32px;
+          font-size: 26px;
+          font-weight: 800;
+          color: #4f46e5;
+          cursor: pointer;
+          letter-spacing: 0.6px;
+          transition: transform 0.2s ease, opacity 0.2s ease;
+        }
 
+        .brand-top:hover {
+          transform: translateY(-1px);
+          opacity: 0.85;
+        }
+      `}</style>
+      <div className="brand-top" onClick={() => navigate("/")}>
+        AutomateX
+      </div>
       <div className="auth">
         <form className="auth-card" onSubmit={submit}>
           <h2>Welcome Back</h2>

@@ -1,5 +1,6 @@
 package com.example.auto.service;
 
+import com.example.auto.dto.ActionRequestDto;
 import com.example.auto.dto.RequestDTO;
 import com.example.auto.model.*;
 import com.example.auto.repository.*;
@@ -123,7 +124,7 @@ public class RequestService {
     }
 
     // ================= REJECT =================
-    public Request reject(Long requestId, Long approverId) {
+    public Request reject(Long requestId, ActionRequestDto dto) {
 
         Request req = requestRepo.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
@@ -134,6 +135,11 @@ public class RequestService {
         int level = req.getCurrentLevel();
         String oldStatus = req.getStatus();
 
+        // ✅ EXACT PLACE FOR YOUR CODE
+        req.setRemarks(dto.getRemarks());
+        req.setStatus("REJECTED");
+        req.setLastActionAt(LocalDateTime.now());
+
         ApprovalLevel levelInfo = wf.getApprovalLevels().stream()
                 .filter(l -> l.getLevelNo() == level)
                 .findFirst()
@@ -143,13 +149,10 @@ public class RequestService {
         history.setRequestId(req.getId());
         history.setLevelNo(level);
         history.setRole(levelInfo != null ? levelInfo.getRole() : "UNKNOWN");
-        history.setApproverId(approverId);
+        history.setApproverId(dto.getApproverId());
         history.setAction("REJECTED");
         history.setActionAt(LocalDateTime.now());
         historyRepo.save(history);
-
-        req.setStatus("REJECTED");
-        req.setLastActionAt(LocalDateTime.now());
 
         Request saved = requestRepo.save(req);
 
@@ -158,15 +161,16 @@ public class RequestService {
                 saved.getWorkflowId(),
                 level,
                 history.getRole(),
-                approverId,
+                dto.getApproverId(),
                 "REJECTED",
                 oldStatus,
                 "REJECTED",
-                "Rejected by " + history.getRole()
+                dto.getRemarks()   // ✅ remarks in audit
         );
 
         return saved;
     }
+
 
     // ================= ROLE BASED =================
     public List<Map<String, Object>> getPendingForManagerWithNames(Long managerId) {
