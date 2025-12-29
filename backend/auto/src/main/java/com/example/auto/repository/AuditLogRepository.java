@@ -7,9 +7,13 @@ import java.util.List;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
-    List<AuditLog> findByRequestId(Long requestId);
+    List<AuditLog> findByRequestIdOrderByActionAtAsc(Long requestId);
 
     List<AuditLog> findByWorkflowId(Long workflowId);
 
     List<AuditLog> findByApproverId(Long approverId);
+
+    List<AuditLog> findByRequestIdOrderByActionAtDesc(Long requestId);
+
+
 }

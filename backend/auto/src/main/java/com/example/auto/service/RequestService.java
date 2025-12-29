@@ -125,7 +125,8 @@ public class RequestService {
 
     // ================= REJECT =================
     public Request reject(Long requestId, ActionRequestDto dto) {
-
+        Long approverId = dto.getApproverId();
+        String remarks = dto.getRemarks();
         Request req = requestRepo.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
@@ -215,7 +216,7 @@ public class RequestService {
                     userRepo.findById(r.getInitiatorId())
                             .map(User::getName).orElse("Unknown"));
 
-            List<AuditLog> logs = auditRepo.findByRequestId(r.getId());
+            List<AuditLog> logs = auditRepo.findByRequestIdOrderByActionAtAsc(r.getId());
 
             map.put("totalApprovals", logs.size());
 
