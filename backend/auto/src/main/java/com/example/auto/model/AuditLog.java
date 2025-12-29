@@ -20,10 +20,14 @@ public class AuditLog {
     private Long approverId;
 
     private String action;          // APPROVED / REJECTED / ESCALATED
+    @Column(columnDefinition = "TEXT")
     private String previousStatus;
+
+    @Column(columnDefinition = "TEXT")
     private String newStatus;
 
-    @Column(length = 500)
+
+    @Column(length = 1000)
     private String remarks;
 
     private LocalDateTime actionAt = LocalDateTime.now();

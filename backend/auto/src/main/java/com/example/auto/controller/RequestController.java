@@ -57,6 +57,7 @@ public class RequestController {
     @PutMapping("/{id}/reject")
     public Request reject(@PathVariable Long id,
                           @RequestBody ActionRequestDto dto) {
+
         return service.reject(id, dto);
     }
 
@@ -85,49 +86,6 @@ public class RequestController {
                 .orElseThrow(() -> new RuntimeException("Request not found"));
     }
 
-    @GetMapping("/summary")
-    public List<Map<String, Object>> getRequestsSummary() {
 
-        List<Request> requests = requestRepo.findAll();
-        List<Map<String, Object>> summary = new ArrayList<>();
-
-        for (Request r : requests) {
-
-            // 🔹 Fetch initiator name
-            User initiator = userRepo.findById(r.getInitiatorId()).orElse(null);
-
-            // 🔹 Fetch audit logs
-            List<AuditLog> logs = auditRepo.findByRequestId(r.getId());
-
-            AuditLog lastLog = logs.stream()
-                    .max(Comparator.comparing(AuditLog::getActionAt))
-                    .orElse(null);
-
-            Map<String, Object> lastAction = null;
-
-            if (lastLog != null) {
-                User approver = userRepo.findById(lastLog.getApproverId()).orElse(null);
-
-                lastAction = new HashMap<>();
-                lastAction.put("approverId", lastLog.getApproverId());
-                lastAction.put("approverName",
-                        approver != null ? approver.getName() : "Unknown");
-                lastAction.put("action", lastLog.getAction());
-                lastAction.put("actionAt", lastLog.getActionAt());
-            }
-
-            // 🔹 Response map
-            Map<String, Object> map = new HashMap<>();
-            map.put("request", r);
-            map.put("initiatorName",
-                    initiator != null ? initiator.getName() : "Unknown");
-            map.put("totalApprovals", logs.size());
-            map.put("lastAction", lastAction);
-
-            summary.add(map);
-        }
-
-        return summary;
-    }
 
 }

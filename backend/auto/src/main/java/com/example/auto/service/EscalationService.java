@@ -2,10 +2,12 @@ package com.example.auto.service;
 
 import com.example.auto.model.*;
 import com.example.auto.repository.*;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,61 +23,83 @@ public class EscalationService {
     @Autowired
     private EscalationHistoryRepository historyRepo;
 
-    // runs every 1 minute
+    /**
+     * Runs every 1 minute
+     * Escalation is based on HOURS configured by Admin
+     */
     @Scheduled(fixedRate = 60000)
+    @Transactional
     public void processEscalations() {
 
-        List<Request> requests =
+        List<Request> pendingRequests =
                 requestRepo.findByStatusStartingWith("PENDING");
 
-        for (Request req : requests) {
 
-            Workflow wf = workflowRepo.findById(req.getWorkflowId())
-                    .orElseThrow();
+        LocalDateTime now = LocalDateTime.now();
 
-            ApprovalLevel level = wf.getApprovalLevels().stream()
-                    .filter(l -> l.getLevelNo() == req.getCurrentLevel())
-                    .findFirst().orElseThrow();
+        for (Request req : pendingRequests) {
 
-            LocalDateTime expiry =
-                    req.getLastActionAt().plusHours(level.getEscalationHours());
+            Workflow workflow = workflowRepo
+                    .findById(req.getWorkflowId())
+                    .orElse(null);
 
-            if (LocalDateTime.now().isAfter(expiry)) {
-                escalate(req, wf);
+            if (workflow == null) continue;
+
+            // Admin-configured escalation hours
+            int escalationHours = workflow.getEscalationHours();
+            if (escalationHours <= 0) continue;
+
+            LocalDateTime lastActionAt = req.getLastActionAt();
+            if (lastActionAt == null) continue;
+
+            long hoursPassed =
+                    Duration.between(lastActionAt, now).toHours();
+
+            if (hoursPassed >= escalationHours) {
+                escalate(req, workflow);
             }
         }
     }
 
+    /**
+     * Escalates request to next approval level
+     */
     private void escalate(Request req, Workflow wf) {
 
-        int current = req.getCurrentLevel();
-        int next = current + 1;
+        int currentLevel = req.getCurrentLevel();
+        int nextLevel = currentLevel + 1;
 
-        EscalationHistory h = new EscalationHistory();
-        h.setRequestId(req.getId());
-        h.setFromLevel(current);
-        h.setActionAt(LocalDateTime.now());
+        EscalationHistory history = new EscalationHistory();
+        history.setRequestId(req.getId());
+        history.setFromLevel(currentLevel);
+        history.setActionAt(LocalDateTime.now());
 
-        boolean hasNext = wf.getApprovalLevels().stream()
-                .anyMatch(l -> l.getLevelNo() == next);
+        boolean hasNextLevel = wf.getApprovalLevels()
+                .stream()
+                .anyMatch(l -> l.getLevelNo() == nextLevel);
 
-        if (hasNext) {
-            req.setCurrentLevel(next);
-            req.setStatus("ESCALATED_" + current);
+        if (hasNextLevel) {
+
+            // 🔼 Escalate to next level
+            req.setCurrentLevel(nextLevel);
+            req.setStatus("ESCALATED_" + currentLevel);
             req.setLastActionAt(LocalDateTime.now());
 
-            h.setToLevel(next);
-            h.setAction("ESCALATED");
-            h.setReason("SLA breached");
+            history.setToLevel(nextLevel);
+            history.setAction("ESCALATED");
+            history.setReason("Approval SLA breached");
 
         } else {
+
+            // ❌ Auto reject
             req.setStatus("REJECTED");
 
-            h.setAction("AUTO_REJECTED");
-            h.setReason("No next level");
+            history.setAction("AUTO_REJECTED");
+            history.setReason("No further approval levels");
         }
 
-        historyRepo.save(h);
+        historyRepo.save(history);
         requestRepo.save(req);
     }
+
 }

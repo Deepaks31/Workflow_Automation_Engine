@@ -1,79 +1,194 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function HomeDashboard() {
   const navigate = useNavigate();
+  const cardsRef = useRef([]);
+  const bgRef = useRef(null);
+
+  /* ================= EFFECTS ================= */
+  useEffect(() => {
+    /* Reveal cards */
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) entry.target.classList.add("animate");
+        });
+      },
+      { threshold: 0.15 }
+    );
+    cardsRef.current.forEach(card => observer.observe(card));
+
+    /* Interactive background */
+    const handleMouseMove = e => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      if (bgRef.current) {
+        bgRef.current.style.background = `
+          radial-gradient(circle at ${x}% ${y}%,
+          rgba(99,102,241,0.18),
+          rgba(238,242,255,0.9) 55%)
+        `;
+      }
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  const scrollToFeatures = () => {
+    document.querySelector(".features").scrollIntoView({ behavior: "smooth" });
+  };
+
+  const title = "Enterprise Workflow Automation";
 
   return (
     <>
       <style>{`
-        * {
-          box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; margin:0; padding:0;  transition-timing-function: ease-out;}
         body {
-          margin: 0;
           font-family: 'Inter', sans-serif;
-          background: linear-gradient(135deg, #eef2ff, #f8fafc);
+          background: #eef2ff;
         }
 
+        /* BACKGROUND LAYER */
+        .bg {
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          transition: background 0.25s ease;
+        }
+
+        /* NAVBAR */
         .navbar {
           position: sticky;
           top: 0;
           z-index: 50;
+          padding: 18px 50px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 18px 40px;
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(10px);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+          background: rgba(255,255,255,0.85);
+          backdrop-filter: blur(14px);
+          box-shadow: 0 8px 30px rgba(0,0,0,0.08);
         }
 
         .brand {
-          font-size: 26px;
-          font-weight: 800;
-          color: #4f46e5;
-          letter-spacing: 0.5px;
+          font-size: 28px;
+          font-weight: 900;
+          background: linear-gradient(90deg,#4f46e5,#6366f1,#4f46e5);
+          background-size: 200%;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          cursor: pointer;
+          animation: 
+            brandWave 4s linear infinite,
+            brandPulse 2.8s ease-in-out infinite;
+        }
+
+        /* Existing gradient wave */
+        @keyframes brandWave {
+          0% { background-position: 0%; }
+          100% { background-position: 200%; }
+        }
+
+        /* ✨ New subtle pulse animation */
+        @keyframes brandPulse {
+          0% {
+            text-shadow: 0 0 0 rgba(79,70,229,0);
+            transform: scale(1);
+          }
+          50% {
+            text-shadow: 0 0 18px rgba(79,70,229,0.6);
+            transform: scale(1.03);
+          }
+          100% {
+            text-shadow: 0 0 0 rgba(79,70,229,0);
+            transform: scale(1);
+          }
+        }
+
+
+        /* BUTTONS – MAGNETIC + SHINE */
+        button {
+          position: relative;
+          overflow: hidden;
+          cursor: pointer;
+          font-weight: 600;
+        }
+
+        button::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            120deg,
+            transparent,
+            rgba(255,255,255,0.5),
+            transparent
+          );
+          transform: translateX(-100%);
+          transition: transform 0.6s;
+        }
+
+        button:hover::before {
+          transform: translateX(100%);
+        }
+
+        button:active {
+          transform: scale(0.96);
         }
 
         .login-btn {
-          background: linear-gradient(135deg, #4f46e5, #6366f1);
+          padding: 10px 24px;
+          border-radius: 999px;
+          background: linear-gradient(135deg,#4f46e5,#6366f1);
           color: white;
           border: none;
-          padding: 10px 22px;
-          border-radius: 999px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
+          transition: box-shadow 0.3s, transform 0.3s;
         }
 
         .login-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 25px rgba(79,70,229,0.35);
+          transform: translateY(-3px);
+          box-shadow: 0 15px 35px rgba(79,70,229,0.5);
         }
 
+        /* HERO */
         .hero {
-          padding: 100px 40px 80px;
+          padding: 140px 40px 110px;
           text-align: center;
         }
 
-        .hero h1 {
-          font-size: 48px;
-          margin-bottom: 18px;
-          color: #111827;
+        .hero-title {
+          font-size: 56px;
+          font-weight: 900;
+          display: inline-flex;
+          justify-content: center;
+          margin-bottom: 26px;
+          cursor: default;
         }
 
-        .hero span {
-          color: #4f46e5;
+        .hero-title span {
+          opacity: 0;
+          animation: reveal 0.6s forwards;
+          transition: text-shadow 0.3s;
+        }
+
+        .hero-title:hover span {
+          text-shadow: 0 0 18px rgba(99,102,241,0.7);
+        }
+
+        @keyframes reveal {
+          from { opacity: 0; transform: scale(0.6); }
+          to { opacity: 1; transform: scale(1); }
         }
 
         .hero p {
-          font-size: 18px;
           max-width: 720px;
-          margin: 0 auto 40px;
-          color: #4b5563;
+          margin: auto;
+          margin-bottom: 42px;
+          color: #374151;
+          font-size: 18px;
+          line-height: 1.7;
         }
 
         .hero-actions {
@@ -83,129 +198,176 @@ export default function HomeDashboard() {
         }
 
         .primary-btn {
-          background: #4f46e5;
+          background: linear-gradient(135deg,#4f46e5,#6366f1);
           color: white;
+          padding: 16px 36px;
+          border-radius: 16px;
           border: none;
-          padding: 14px 28px;
-          border-radius: 14px;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
+          transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .primary-btn:hover {
-          background: #4338ca;
-          box-shadow: 0 15px 35px rgba(79,70,229,0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 24px rgba(79,70,229,0.25);
         }
+
 
         .secondary-btn {
           background: white;
           color: #4f46e5;
           border: 2px solid #c7d2fe;
-          padding: 14px 28px;
-          border-radius: 14px;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
+          padding: 16px 36px;
+          border-radius: 16px;
+          transition: transform 0.3s;
         }
 
         .secondary-btn:hover {
+          transform: translateY(-1px);
           background: #eef2ff;
         }
 
+
+        /* FEATURES */
         .features {
-          padding: 60px 40px 100px;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 30px;
+          padding: 90px 40px;
           max-width: 1200px;
-          margin: 0 auto;
+          margin: auto;
+          display: grid;
+          grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+          gap: 32px;
         }
 
         .feature-card {
-          background: white;
-          border-radius: 18px;
-          padding: 28px;
-          box-shadow: 0 15px 40px rgba(0,0,0,0.08);
-          transition: all 0.35s ease;
+            background: white;
+            padding: 32px;
+            border-radius: 22px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+            opacity: 0;
+            transform: translateY(40px);
+            transition: 
+              transform 0.7s ease,
+              box-shadow 0.7s ease,
+              opacity 0.7s ease;
+            position: relative;
+          }
+
+
+        .feature-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: radial-gradient(
+            circle at top left,
+            rgba(99,102,241,0.25),
+            transparent 60%
+          );
+          opacity: 0;
+          transition: opacity 0.3s;
+          pointer-events: none;
+        }
+
+        .feature-card:hover::after {
+          opacity: 0.5;
         }
 
         .feature-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 25px 60px rgba(0,0,0,0.12);
+          transform: translateY(-4px);
+          box-shadow: 0 18px 36px rgba(79,70,229,0.18);
+        }
+
+
+
+        .feature-card.animate {
+          opacity: 1;
+          transform: translateY(0);
         }
 
         .feature-card h3 {
-          margin-bottom: 10px;
-          color: #111827;
+          font-size: 20px;
+          margin-bottom: 12px;
         }
 
         .feature-card p {
-          font-size: 14px;
-          color: #4b5563;
+          color: #374151;
           line-height: 1.6;
+        }
+
+        /* FOOTER */
+        .footer {
+          background: #f1f5f9;
+          padding: 30px;
+          text-align: center;
+          font-size: 14px;
+          color: #64748b;
         }
       `}</style>
 
+      {/* INTERACTIVE BACKGROUND */}
+      <div ref={bgRef} className="bg"></div>
+
+      {/* NAVBAR */}
       <div className="navbar">
         <div className="brand">AutomateX</div>
-        <button className="login-btn" onClick={() => navigate("/login")}>Login</button>
+        <button className="login-btn" onClick={() => navigate("/login")}>
+          Login
+        </button>
       </div>
 
+      {/* HERO */}
       <section className="hero">
-        <h1>
-          Enterprise Workflow <span>Automation</span>
+        <h1 className="hero-title">
+          {title.split("").map((char, i) => {
+            const center = Math.floor(title.length / 2);
+            const delay = Math.abs(i - center) * 0.05;
+            return (
+              <span key={i} style={{ animationDelay: `${delay}s` }}>
+                {char === " " ? "\u00A0" : char}
+              </span>
+            );
+          })}
         </h1>
+
         <p>
-          Automate approvals, enforce SLAs, enable escalations, and gain full
-          visibility into your enterprise workflows — all in one powerful
-          automation engine.
+          Automate approvals, enforce SLAs, trigger smart escalations,
+          and gain real-time visibility into enterprise workflows.
         </p>
+
         <div className="hero-actions">
           <button className="primary-btn" onClick={() => navigate("/login")}>
             Get Started
           </button>
-          <button className="secondary-btn">
+          <button className="secondary-btn" onClick={scrollToFeatures}>
             View Features
           </button>
         </div>
       </section>
 
+      {/* FEATURES */}
       <section className="features">
-        <div className="feature-card">
-          <h3>Configurable Workflows</h3>
-          <p>
-            Design multi-level approval workflows with conditions, roles,
-            escalations, and execution tracking.
-          </p>
-        </div>
-
-        <div className="feature-card">
-          <h3>SLA & Escalations</h3>
-          <p>
-            Automatically escalate requests when SLAs are breached or
-            auto-reject when no further approvals exist.
-          </p>
-        </div>
-
-        <div className="feature-card">
-          <h3>Audit & History</h3>
-          <p>
-            Maintain a complete audit trail of approvals, rejections,
-            escalations, and automated decisions.
-          </p>
-        </div>
-
-        <div className="feature-card">
-          <h3>Role-Based Dashboards</h3>
-          <p>
-            Dedicated views for Admins, Initiators, Managers, and Finance teams
-            with real-time updates.
-          </p>
-        </div>
+        {[
+          ["⚙️ Configurable Workflows", "Flexible multi-level approval flows."],
+          ["⏱ SLA Monitoring", "Never miss an approval deadline."],
+          ["🚨 Smart Escalations", "Automatic escalation logic."],
+          ["📜 Audit Trail", "Complete action history."],
+          ["📊 Role Dashboards", "Insights for every role."],
+          ["🔐 Secure Platform", "Enterprise-grade security."]
+        ].map((item, i) => (
+          <div
+            key={i}
+            className="feature-card"
+            ref={el => (cardsRef.current[i] = el)}
+          >
+            <h3>{item[0]}</h3>
+            <p>{item[1]}</p>
+          </div>
+        ))}
       </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        © {new Date().getFullYear()} AutomateX. All rights reserved.
+      </footer>
     </>
   );
 }
