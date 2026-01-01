@@ -153,7 +153,6 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
                   <option value="">Select Role</option>
                   <option value="Manager">Manager</option>
                   <option value="Finance">Finance</option>
-                  <option value="Director">Director</option>
                 </select>
               </div>
             ))}

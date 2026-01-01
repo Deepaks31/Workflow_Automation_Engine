@@ -8,17 +8,58 @@ export default function StartRequestModal({ workflow, onClose }) {
   const isLeave = condition === "leavedays" || condition === "leave";
 
   const [form, setForm] = useState({});
-    const initiatorId = Number(localStorage.getItem("userId"));
+  const [error, setError] = useState("");
+
+  const initiatorId = Number(localStorage.getItem("userId"));
+  const maxLimit = Number(workflow?.conditionValue) || null;
+
+  console.log(workflow)
+
+  const handleChange = (field, value) => {
+    setForm({ ...form, [field]: value });
+
+    if (field === "amount" || field === "leaveDays") {
+      const numericValue = Number(value);
+
+      if (!value) {
+        setError(`${field === "amount" ? "Amount" : "Leave days"} is required`);
+      } else if (maxLimit && numericValue > maxLimit) {
+        setError(
+          `Maximum allowed ${field === "amount" ? "amount" : "leave days"} is ${maxLimit}`
+        );
+      } else {
+        setError("");
+      }
+    }
+  };
 
   const submit = async () => {
-    await axios.post("http://localhost:8080/api/requests", {
-      workflowId: workflow.id,
-      initiatorId: initiatorId,
-      data: form,
-    });
+    const valueToCheck = isPurchase ? form.amount : form.leaveDays;
+    if (!valueToCheck) {
+      setError(`${isPurchase ? "Amount" : "Leave days"} is required`);
+      return;
+    }
 
-    alert("Request Submitted Successfully");
-    onClose();
+    if (maxLimit && Number(valueToCheck) > maxLimit) {
+      setError(
+        `Maximum allowed ${isPurchase ? "amount" : "leave days"} is ${maxLimit}`
+      );
+      return;
+    }
+
+    try {
+      await axios.post("http://localhost:8080/api/requests", {
+        workflowId: workflow.id,
+        initiatorId,
+        data: form,
+      });
+
+      alert("Request Submitted Successfully");
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong while submitting request.");
+    }
   };
 
   return (
@@ -30,23 +71,21 @@ export default function StartRequestModal({ workflow, onClose }) {
           {isPurchase && (
             <>
               <div className="field">
-                <label>Amount</label>
+                <label>Amount (Max: {maxLimit})</label>
                 <input
                   type="number"
+                  value={form.amount || ""}
+                  onChange={(e) => handleChange("amount", e.target.value)}
                   placeholder="Enter amount"
-                  onChange={(e) =>
-                    setForm({ ...form, amount: e.target.value })
-                  }
                 />
               </div>
 
               <div className="field">
                 <label>Reason</label>
                 <textarea
+                  value={form.reason || ""}
+                  onChange={(e) => handleChange("reason", e.target.value)}
                   placeholder="Enter reason"
-                  onChange={(e) =>
-                    setForm({ ...form, reason: e.target.value })
-                  }
                 />
               </div>
             </>
@@ -55,13 +94,12 @@ export default function StartRequestModal({ workflow, onClose }) {
           {isLeave && (
             <>
               <div className="field">
-                <label>Leave Days</label>
+                <label>Leave Days (Max: {maxLimit})</label>
                 <input
                   type="number"
+                  value={form.leaveDays || ""}
+                  onChange={(e) => handleChange("leaveDays", e.target.value)}
                   placeholder="No of days"
-                  onChange={(e) =>
-                    setForm({ ...form, leaveDays: e.target.value })
-                  }
                 />
               </div>
 
@@ -69,29 +107,29 @@ export default function StartRequestModal({ workflow, onClose }) {
                 <label>From Date</label>
                 <input
                   type="date"
-                  onChange={(e) =>
-                    setForm({ ...form, fromDate: e.target.value })
-                  }
+                  value={form.fromDate || ""}
+                  onChange={(e) => handleChange("fromDate", e.target.value)}
                 />
               </div>
 
               <div className="field">
                 <label>Reason</label>
                 <textarea
+                  value={form.reason || ""}
+                  onChange={(e) => handleChange("reason", e.target.value)}
                   placeholder="Reason for leave"
-                  onChange={(e) =>
-                    setForm({ ...form, reason: e.target.value })
-                  }
                 />
               </div>
             </>
           )}
 
+          {error && <p className="error">{error}</p>}
+
           <div className="actions">
             <button className="cancel" onClick={onClose}>
               Cancel
             </button>
-            <button className="submit" onClick={submit}>
+            <button className="submit" onClick={submit} disabled={!!error}>
               Submit Request
             </button>
           </div>
@@ -99,9 +137,7 @@ export default function StartRequestModal({ workflow, onClose }) {
       </div>
 
       <style>{`
-        * {
-          box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         .overlay {
           position: fixed;
@@ -128,14 +164,8 @@ export default function StartRequestModal({ workflow, onClose }) {
           to { transform: scale(1); opacity: 1; }
         }
 
-        h3 {
-          margin-top: 0;
-          margin-bottom: 18px;
-        }
-
-        .field {
-          margin-bottom: 14px;
-        }
+        h3 { margin-top: 0; margin-bottom: 18px; }
+        .field { margin-bottom: 14px; }
 
         label {
           font-size: 14px;
@@ -159,17 +189,9 @@ export default function StartRequestModal({ workflow, onClose }) {
           box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
         }
 
-        textarea {
-          resize: none;
-          height: 90px;
-        }
+        textarea { resize: none; height: 90px; }
 
-        .actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 22px;
-        }
+        .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
 
         .cancel {
           background: #e5e7eb;
@@ -188,9 +210,10 @@ export default function StartRequestModal({ workflow, onClose }) {
           cursor: pointer;
         }
 
-        .submit:hover {
-          background: #1e40af;
-        }
+        .submit:hover { background: #1e40af; }
+        .submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .error { color: #dc2626; font-size: 14px; margin-top: 10px; }
       `}</style>
     </>
   );

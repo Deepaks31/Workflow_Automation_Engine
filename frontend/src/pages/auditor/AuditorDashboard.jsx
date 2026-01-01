@@ -1,8 +1,8 @@
-// AuditorDashboard.jsx - LIGHT PROFESSIONAL THEME + Medium View Details
+// AuditorDashboard.jsx - LIGHT PROFESSIONAL THEME with BLACK TABLE HEADER
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
-const AuditTable = ({ requests, onViewDetails }) => (
+const AuditTable = ({ requests, onViewDetails, page, totalPages, setPage }) => (
   <div className="audit-table-wrapper">
     <table className="audit-table">
       <thead>
@@ -25,14 +25,18 @@ const AuditTable = ({ requests, onViewDetails }) => (
             <tr key={req.id}>
               <td data-label="ID">{req.id}</td>
               <td data-label="Initiator">{req.initiatorId}</td>
-              <td data-label="Name" className="name">{r.initiatorName}</td>
+              <td data-label="Name" className="name">
+                {r.initiatorName}
+              </td>
               <td data-label="Status">
-                <span className={`status-pill status-${req.status?.toLowerCase()}`}>
+                <span
+                  className={`status-pill status-${req.status?.toLowerCase()}`}
+                >
                   {req.status}
                 </span>
               </td>
               <td data-label="Level">{req.currentLevel}</td>
-              <td data-label="Approver">{last?.approverName ?? "-"}</td>
+              <td data-label="Approver">{last?.approverId ?? "-"}</td>
               <td data-label="Action Time">
                 {last ? new Date(last.actionAt).toLocaleString() : "-"}
               </td>
@@ -54,22 +58,31 @@ const AuditDetailsModal = ({ request, parsedData, requestLogs, onClose }) => (
     <div className="modal">
       <div className="modal-header">
         <h3 className="modal-title">Request #{request.id} Details</h3>
-        <button className="close-btn" onClick={onClose}>×</button>
+        <button className="close-btn" onClick={onClose}>
+          ×
+        </button>
       </div>
       <div className="modal-content">
         <div className="info-grid">
-          <div className="info-item"><strong>Status:</strong> {request.status}</div>
-          <div className="info-item"><strong>Initiator ID:</strong> {request.initiatorId}</div>
-          <div className="info-item"><strong>Current Level:</strong> {request.currentLevel}</div>
           <div className="info-item">
-            <strong>Created:</strong> {new Date(request.createdAt).toLocaleString()}
+            <strong>Status:</strong> {request.status}
+          </div>
+          <div className="info-item">
+            <strong>Initiator ID:</strong> {request.initiatorId}
+          </div>
+          <div className="info-item">
+            <strong>Current Level:</strong> {request.currentLevel}
+          </div>
+          <div className="info-item">
+            <strong>Created:</strong>{" "}
+            {new Date(request.createdAt).toLocaleString()}
           </div>
         </div>
 
         <h4 className="section-title">Request Data</h4>
         {Object.keys(parsedData).length === 0 ? (
-          <div className="empty-state" style={{padding: '30px 16px'}}>
-            <div style={{fontSize: '36px', marginBottom: '12px'}}>📋</div>
+          <div className="empty-state" style={{ padding: "30px 16px" }}>
+            <div style={{ fontSize: "36px", marginBottom: "12px" }}>📋</div>
             <h4>No custom fields</h4>
           </div>
         ) : (
@@ -93,8 +106,8 @@ const AuditDetailsModal = ({ request, parsedData, requestLogs, onClose }) => (
 
         <h4 className="section-title">Approval Logs</h4>
         {requestLogs.length === 0 ? (
-          <div className="empty-state" style={{padding: '30px 16px'}}>
-            <div style={{fontSize: '36px', marginBottom: '12px'}}>⏳</div>
+          <div className="empty-state" style={{ padding: "30px 16px" }}>
+            <div style={{ fontSize: "36px", marginBottom: "12px" }}>⏳</div>
             <h4>No actions yet</h4>
           </div>
         ) : (
@@ -115,7 +128,9 @@ const AuditDetailsModal = ({ request, parsedData, requestLogs, onClose }) => (
                   <td>{l.levelNo}</td>
                   <td>{l.role}</td>
                   <td>
-                    <span className={`status-pill status-${l.action.toLowerCase()}`}>
+                    <span
+                      className={`status-pill status-${l.action.toLowerCase()}`}
+                    >
                       {l.action}
                     </span>
                   </td>
@@ -136,7 +151,14 @@ const LoadingSpinner = () => (
   <div className="loading-screen">
     <div className="spinner-container">
       <div className="spinner"></div>
-      <p style={{ margin: 0, color: '#64748b', fontSize: '16px', fontWeight: '500' }}>
+      <p
+        style={{
+          margin: 0,
+          color: "#64748b",
+          fontSize: "16px",
+          fontWeight: "500",
+        }}
+      >
         Loading audit data...
       </p>
     </div>
@@ -159,25 +181,35 @@ export default function AuditorDashboard() {
   const [parsedRequestData, setParsedRequestData] = useState({});
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalRequests, setTotalRequests] = useState(0);
 
-  // Load summary data
-  const loadSummary = useCallback(() => {
+  const loadSummary = () => {
     setLoading(true);
+
     axios
-      .get("http://localhost:8080/api/summary")
+      .get("http://localhost:8080/api/summary", {
+        params: {
+          page: page,
+          size: 10,
+        },
+      })
       .then((res) => {
-        setRequestSummary(res.data);
+        setRequestSummary(res.data.data);
+        setTotalPages(res.data.totalPages);
+        setTotalRequests(res.data.totalElements);
         setLoading(false);
       })
       .catch((err) => {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  };
 
   useEffect(() => {
     loadSummary();
-  }, [loadSummary]);
+  }, [page]);
 
   // Scroll effect for header
   useEffect(() => {
@@ -205,9 +237,7 @@ export default function AuditorDashboard() {
     setSelectedRequest(req);
 
     try {
-      setParsedRequestData(
-        req.requestData ? JSON.parse(req.requestData) : {}
-      );
+      setParsedRequestData(req.requestData ? JSON.parse(req.requestData) : {});
     } catch {
       setParsedRequestData({});
     }
@@ -228,33 +258,31 @@ export default function AuditorDashboard() {
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('userId');
-      window.location.href = '/login';
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      window.location.href = "/login";
     }
   };
-
-  if (loading && requestSummary.length === 0) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <>
       <div className="auditor-app-wrapper">
         {/* Premium Header */}
-        <header className={`auditor-header ${scrolled ? 'scrolled' : ''}`}>
+        <header className={`auditor-header ${scrolled ? "scrolled" : ""}`}>
           <div className="header-content">
             <div className="header-left">
               <h1 className="page-title">
                 <span className="title-icon">🔍</span>
                 Auditor Dashboard
               </h1>
-              <p className="page-subtitle">Monitor and audit workflow approvals</p>
+              <p className="page-subtitle">
+                Monitor and audit workflow approvals
+              </p>
             </div>
             <div className="header-actions">
               <div className="stats-grid">
                 <div className="stat-card">
-                  <div className="stat-value">{requestSummary.length}</div>
+                  <div className="stat-value">{totalRequests}</div>
                   <div className="stat-label">Total Requests</div>
                 </div>
                 <div className="stat-card">
@@ -286,10 +314,36 @@ export default function AuditorDashboard() {
               <EmptyState />
             ) : (
               <div className="audit-table-container">
-                <AuditTable 
-                  requests={filteredRequests} 
+                <AuditTable
+                  requests={filteredRequests}
                   onViewDetails={openDetails}
+                  page={page}
+                  totalPages={totalPages}
+                  setPage={setPage}
                 />
+
+                {/* Pagination */}
+                <div className="pagination">
+                  <button
+                    className="page-btn"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    ◀ Prev
+                  </button>
+
+                  <span className="page-info">
+                    Page {page + 1} of {totalPages}
+                  </span>
+
+                  <button
+                    className="page-btn"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next ▶
+                  </button>
+                </div>
               </div>
             )}
           </section>
@@ -474,10 +528,10 @@ export default function AuditorDashboard() {
 
         .audit-table { width: 100%; border-collapse: collapse; min-width: 1200px; font-size: 15px; }
         .audit-table thead th {
-          background: linear-gradient(135deg, #3a64a6ff, #3d65d3ff, #1e40af);
+          background: linear-gradient(135deg, #000000, #1a1a2e, #2d2d3f);
           color: white; padding: 20px 16px; font-weight: 700; font-size: 14px; 
           text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 10;
-          border-bottom: 2px solid #1e40af;
+          border-bottom: 2px solid #1a1a2e;
         }
         .audit-table tbody td {
           padding: 20px 16px; border-bottom: 1px solid #f1f5f9; font-size: 15px;
@@ -628,6 +682,57 @@ export default function AuditorDashboard() {
           .modal { margin: 16px; width: calc(100% - 32px); max-width: calc(100% - 32px); }
           .info-grid { grid-template-columns: 1fr; }
         }
+          .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+            padding: 18px;
+            user-select: none;
+          }
+
+          .page-info {
+            font-weight: 600;
+            font-size: 14px;
+            color: #334155;
+            min-width: 120px;
+            text-align: center;
+          }
+
+          .page-btn {
+            padding: 8px 18px;
+            border-radius: 10px;
+            border: 1px solid #cbd5f5;
+            background: linear-gradient(180deg, #ffffff, #f1f5f9);
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+          }
+
+          /* Hover */
+          .page-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+          }
+
+          /* Active click */
+          .page-btn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          }
+
+          /* Disabled state */
+          .page-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+            background: #f1f5f9;
+            box-shadow: none;
+          }
+
       `}</style>
     </>
   );
