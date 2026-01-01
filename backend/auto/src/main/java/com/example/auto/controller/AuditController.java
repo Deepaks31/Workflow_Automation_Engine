@@ -7,6 +7,10 @@ import com.example.auto.repository.AuditLogRepository;
 import com.example.auto.repository.RequestRepository;
 import com.example.auto.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -50,55 +54,37 @@ public class AuditController {
         return auditRepo.findAll();
     }
     @GetMapping("/summary")
-    public List<Map<String, Object>> getRequestsSummary() {
+    public Map<String, Object> getRequestsSummary(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        Page<Request> requestPage = requestRepo.findAll(pageable);
 
-        List<Request> requests = requestRepo.findAll();
         List<Map<String, Object>> summary = new ArrayList<>();
 
-        for (Request r : requests) {
+        for (Request r : requestPage.getContent()) {
 
-            // 🔹 Fetch initiator name
             User initiator = userRepo.findById(r.getInitiatorId()).orElse(null);
 
-            // 🔹 Fetch audit logs
-            List<AuditLog> logs =
-                    auditRepo.findByRequestIdOrderByActionAtDesc(r.getId());
+            List<AuditLog> logs = auditRepo.findByRequestIdOrderByActionAtAsc(r.getId());
+            AuditLog lastAction = logs.isEmpty() ? null : logs.get(logs.size() - 1);
 
-            AuditLog lastLog = logs.isEmpty() ? null : logs.get(0);
-
-
-
-
-            Map<String, Object> lastAction = null;
-
-            if (lastLog != null) {
-                User approver = null;
-                if (lastLog.getApproverId() != null) {
-                    approver = userRepo.findById(lastLog.getApproverId()).orElse(null);
-                }
-
-
-                lastAction = new HashMap<>();
-                lastAction.put("approverId", lastLog.getApproverId());
-                lastAction.put(
-                        "approverName",
-                        approver != null ? approver.getName() : "SYSTEM"
-                );
-                lastAction.put("action", lastLog.getAction());
-                lastAction.put("actionAt", lastLog.getActionAt());
-            }
-
-            // 🔹 Response map
             Map<String, Object> map = new HashMap<>();
             map.put("request", r);
-            map.put("initiatorName",
-                    initiator != null ? initiator.getName() : "Unknown");
-            map.put("totalApprovals", logs.size());
+            map.put("initiatorName", initiator != null ? initiator.getName() : "Unknown");
             map.put("lastAction", lastAction);
 
             summary.add(map);
         }
 
-        return summary;
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", summary);
+        response.put("currentPage", page);
+        response.put("totalPages", requestPage.getTotalPages());
+        response.put("totalElements", requestPage.getTotalElements());
+
+        return response;
     }
+
 }

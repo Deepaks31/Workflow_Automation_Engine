@@ -92,7 +92,7 @@ public class EscalationService {
         } else {
 
             // ❌ Auto reject
-            req.setStatus("REJECTED");
+            req.setStatus("zREJECTED");
 
             history.setAction("AUTO_REJECTED");
             history.setReason("No further approval levels");

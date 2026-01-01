@@ -85,7 +85,4 @@ public class RequestController {
         return requestRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
     }
-
-
-
 }
