@@ -15,7 +15,7 @@ export default function ApproverDashboard() {
   const loadRequests = useCallback(() => {
     setLoading(true);
     axios
-      .get(`http://localhost:8080/api/requests/pending/manager/${approverId}/view`)
+      .get(`${import.meta.env.VITE_API_URL}/api/requests/pending/manager/${approverId}/view`)
       .then((res) => {
         setRequests(res.data);
         setLoading(false);
@@ -48,7 +48,7 @@ export default function ApproverDashboard() {
   }, [activeRequest]);
 
   const approveRequest = async () => {
-    await axios.put(`http://localhost:8080/api/requests/${activeRequest.id}/approve`, { approverId });
+    await axios.put(`${import.meta.env.VITE_API_URL}/api/requests/${activeRequest.id}/approve`, { approverId });
     alert("✅ Request APPROVED");
     closeModal();
   };
@@ -58,7 +58,7 @@ export default function ApproverDashboard() {
       alert("❌ Remarks are required for rejection");
       return;
     }
-    await axios.put(`http://localhost:8080/api/requests/${activeRequest.id}/reject`, {
+    await axios.put(`${import.meta.env.VITE_API_URL}/api/requests/${activeRequest.id}/reject`, {
       approverId,
       remarks,
     });

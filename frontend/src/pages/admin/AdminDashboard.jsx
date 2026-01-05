@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     setLoading(true);
     axios
-      .get("http://localhost:8080/api/workflows")
+      .get(`${import.meta.env.VITE_API_URL}/api/workflows`)
       .then((res) => {
         const formatted = res.data.map((wf) => ({
           ...wf,
@@ -40,7 +40,7 @@ export default function AdminDashboard() {
 
   const addWorkflow = (workflow) => {
     axios
-      .post("http://localhost:8080/api/workflows", workflow)
+      .post(`${import.meta.env.VITE_API_URL}/api/workflows`, workflow)
       .then((res) => {
         const wf = {
           ...res.data,
@@ -59,13 +59,13 @@ export default function AdminDashboard() {
     if (!window.confirm("Are you sure you want to delete this workflow?")) return;
     setWorkflows(workflows.filter((wf) => wf.id !== id));
     axios
-      .delete(`http://localhost:8080/api/workflows/${id}`)
+      .delete(`${process.env.REACT_APP_API_URL}/api/workflows/${id}`)
       .catch((err) => console.error(err));
   };
 
   const updateWorkflow = (workflow) => {
     axios
-      .put(`http://localhost:8080/api/workflows/${workflow.id}`, workflow)
+      .put(`${import.meta.env.VITE_API_URL}/api/workflows/${workflow.id}`, workflow)
       .then((res) => {
         const updated = {
           ...res.data,
