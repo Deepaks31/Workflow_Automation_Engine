@@ -48,7 +48,7 @@ export default function StartRequestModal({ workflow, onClose }) {
     }
 
     try {
-      await axios.post("http://localhost:8080/api/requests", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/requests`, {
         workflowId: workflow.id,
         initiatorId,
         data: form,

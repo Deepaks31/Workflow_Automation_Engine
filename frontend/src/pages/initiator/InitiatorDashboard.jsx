@@ -30,7 +30,7 @@ export default function InitiatorDashboard() {
   const loadWorkflows = useCallback(() => {
     setLoading(true);
     axios
-      .get("http://localhost:8080/api/workflows")
+      .get(`${import.meta.env.VITE_API_URL}/api/workflows`)
       .then((res) => {
         setWorkflows(res.data);
         setLoading(false);
@@ -45,7 +45,7 @@ export default function InitiatorDashboard() {
   const loadRequests = useCallback(() => {
     setLoadingRequests(true);
     axios
-      .get(`http://localhost:8080/api/requests/initiator/${initiatorId}`)
+      .get(`${import.meta.env.VITE_API_URL}/api/requests/initiator/${initiatorId}`)
       .then((res) => {
         setRequests(res.data);
         setLoadingRequests(false);
@@ -80,7 +80,7 @@ export default function InitiatorDashboard() {
     if (!window.confirm("Are you sure you want to delete this request?")) return;
     setRequests(prev => prev.filter(r => r.id !== requestId));
     axios
-      .delete(`http://localhost:8080/api/requests/${requestId}`)
+      .delete(`${import.meta.env.VITE_API_URL}/api/requests/${requestId}`)
       .catch((err) => {
         console.error(err);
         loadRequests();

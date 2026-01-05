@@ -189,7 +189,7 @@ export default function AuditorDashboard() {
     setLoading(true);
 
     axios
-      .get("http://localhost:8080/api/summary", {
+      .get(`${import.meta.env.VITE_API_URL}/api/summary`, {
         params: {
           page: page,
           size: 10,
@@ -243,7 +243,7 @@ export default function AuditorDashboard() {
     }
 
     axios
-      .get(`http://localhost:8080/api/audit/request/${req.id}`)
+      .get(`${import.meta.env.VITE_API_URL}/api/audit/request/${req.id}`)
       .then((res) => setRequestLogs(res.data))
       .catch(() => setRequestLogs([]));
   };
