@@ -8,7 +8,7 @@ A scalable, enterprise-grade **workflow automation platform** to manage **multi-
 
 ## 🌐 Live Demo
 
-🔗 **Hosted Application:** `workflow-automatex.netlify.app`
+🔗 **Hosted Application:** [workflow-automatex.netlify.app](workflow-automatex.netlify.app)
 
 ---
 
@@ -117,7 +117,7 @@ npm run dev
 
 ## 🔐 Security Practices
 
-* `application.properties` **ignored via .gitignore**
+* `.env` **ignored via .gitignore**
 * No credentials committed to version control
 * Environment-based configuration
 * Role-based authorization enforced
