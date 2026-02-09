@@ -472,6 +472,23 @@ export default function InitiatorDashboard() {
           .main-content { padding: 24px 5%; }
           .modal { margin: 20px; width: calc(100% - 40px); max-width: calc(100% - 40px); }
         }
+          /* ✅ Ensure card is a vertical flex container */
+            .workflow-card .card {
+              display: flex;
+              flex-direction: column;
+              height: 100%;
+            }
+
+            /* Footer pushes button to bottom */
+            .card-footer {
+              margin-top: auto;
+            }
+
+            /* Optional: spacing */
+            .card-footer .start-btn {
+              width: 100%;
+            }
+
       `}</style>
     </>
   );
@@ -480,28 +497,43 @@ export default function InitiatorDashboard() {
 // All Components
 const WorkflowCard = ({ workflow, isHovered, onHover, onWorkflowView, onStartRequest }) => (
   <div 
-    className={`card workflow-card ${isHovered ? 'hovered' : ''}`}
+    className={`workflow-card ${isHovered ? 'hovered' : ''}`}
     onMouseEnter={() => onHover(workflow.id)}
     onMouseLeave={() => onHover(null)}
-    onClick={onWorkflowView}
   >
-    <div className="card-header">
-      <h3>{workflow.name}</h3>
-      <div className="status-indicator"></div>
+    <div className="card" onClick={onWorkflowView}>
+      <div className="card-header">
+        <h3>{workflow.name}</h3>
+        <div className="status-indicator"></div>
+      </div>
+
+      <p className="description" title={workflow.description}>
+        {workflow.description}
+      </p>
+
+      <div className="condition">
+        <span className="label">Condition:</span>
+        <code>
+          {workflow.conditionField} {workflow.conditionOperator} {workflow.conditionValue}
+        </code>
+      </div>
+
+      {/* ✅ BUTTON ALWAYS AT BOTTOM */}
+      <div className="card-footer">
+        <button
+          className="start-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onStartRequest();
+          }}
+        >
+          Start Request →
+        </button>
+      </div>
     </div>
-    <p className="description" title={workflow.description}>{workflow.description}</p>
-    <div className="condition">
-      <span className="label">Condition:</span>
-      <code>{workflow.conditionField} {workflow.conditionOperator} {workflow.conditionValue}</code>
-    </div>
-    <button 
-      className="start-btn pulse-animation"
-      onClick={(e) => { e.stopPropagation(); onStartRequest(); }}
-    >
-      Start Request →
-    </button>
   </div>
 );
+
 
 const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelete }) => (
   <div className="card request-card">

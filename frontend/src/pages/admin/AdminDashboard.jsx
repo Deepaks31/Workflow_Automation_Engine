@@ -5,11 +5,22 @@ import CreateWorkflow from "./CreateWorkflow";
 export default function AdminDashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [workflows, setWorkflows] = useState([]);
+  const [users, setUsers] = useState([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("workflows");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
+    if (activeTab === "workflows") {
+      loadWorkflows();
+    } else {
+      loadUsers();
+    }
+  }, [activeTab]);
+
+  const loadWorkflows = () => {
     setLoading(true);
     axios
       .get(`${import.meta.env.VITE_API_URL}/api/workflows`)
@@ -28,7 +39,21 @@ export default function AdminDashboard() {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  };
+
+  const loadUsers = () => {
+    setLoading(true);
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/admin/users`)
+      .then((res) => {
+        setUsers(res.data.users || res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,6 +62,16 @@ export default function AdminDashboard() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownOpen && !event.target.closest('.dropdown-container')) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dropdownOpen]);
 
   const addWorkflow = (workflow) => {
     axios
@@ -59,7 +94,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Are you sure you want to delete this workflow?")) return;
     setWorkflows(workflows.filter((wf) => wf.id !== id));
     axios
-      .delete(`${process.env.REACT_APP_API_URL}/api/workflows/${id}`)
+      .delete(`${import.meta.env.VITE_API_URL}/api/workflows/${id}`)
       .catch((err) => console.error(err));
   };
 
@@ -70,13 +105,23 @@ export default function AdminDashboard() {
         const updated = {
           ...res.data,
           approvals: res.data.approvalLevels?.map((a) => a.role) || [],
-          condition: `${res.data.conditionField} ${res.data.conditionOperator} ${res.data.conditionValue}`,
+          condition: res.data.conditionField
+            ? `${res.data.conditionField} ${res.data.conditionOperator} ${res.data.conditionValue}`
+            : "",
         };
         setWorkflows(workflows.map((wf) => (wf.id === updated.id ? updated : wf)));
         setSelectedWorkflow(null);
         setShowCreate(false);
       })
       .catch((err) => console.error(err));
+  };
+
+  const revokeAccess = (id) => {
+    if (!window.confirm("Remove user access?")) return;
+    setUsers(users.filter((u) => u.id !== id));
+    axios
+      .put(`${import.meta.env.VITE_API_URL}/api/admin/users/${id}/revoke`)
+      .catch(console.error);
   };
 
   const handleLogout = () => {
@@ -86,67 +131,124 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
   return (
     <>
-      <div className="admin-app-wrapper">
-        <header className={`admin-header ${scrolled ? 'scrolled' : ''}`}>
-          <div className="header-content">
-            <div className="header-left">
-              <h1 className="page-title">
-                <span className="title-icon">⚙️</span>
-                Admin Dashboard
-              </h1>
-              <p className="page-subtitle">Manage workflows and approval processes</p>
-            </div>
-            <div className="header-actions">
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-value">{workflows.length}</div>
-                  <div className="stat-label">Total Workflows</div>
+      <div className="admin-layout">
+        <div className="admin-app-wrapper">
+          <header className={`admin-header ${scrolled ? 'scrolled' : ''}`}>
+            <div className="header-content">
+              <div className="header-left">
+                <h1 className="page-title">
+                  <span className="title-icon">⚙️</span>
+                  Admin Dashboard
+                </h1>
+                <p className="page-subtitle">
+                  {activeTab === "workflows" 
+                    ? "Manage workflows and approval processes" 
+                    : `Manage user access and permissions (${users.length} users)`
+                  }
+                </p>
+              </div>
+              <div className="header-actions">
+                <div className="dropdown-container">
+                  <button 
+                    className="dropdown-toggle"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                  >
+                    <span className={`dropdown-icon ${activeTab === "workflows" ? "workflow-icon" : "user-icon"}`}>
+                      {activeTab === "workflows" ? "⚙️" : "👤"}
+                    </span>
+                    {activeTab === "workflows" ? "Workflows" : "Users"}
+                    <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>▼</span>
+                  </button>
+                  
+                  {dropdownOpen && (
+                    <div className="dropdown-menu">
+                      <button 
+                        className={`dropdown-item ${activeTab === "workflows" ? "active" : ""}`}
+                        onClick={() => {
+                          setActiveTab("workflows");
+                          setDropdownOpen(false);
+                        }}
+                      >
+                        <span className="workflow-icon">⚙️</span> Workflows
+                      </button>
+                      <button 
+                        className={`dropdown-item ${activeTab === "users" ? "active" : ""}`}
+                        onClick={() => {
+                          setActiveTab("users");
+                          setDropdownOpen(false);
+                        }}
+                      >
+                        <span className="user-icon">👤</span> Users
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="stats-grid">
+                  <div className="stat-card">
+                    <div className="stat-value">
+                      {activeTab === "workflows" ? workflows.length : users.length}
+                    </div>
+                    <div className="stat-label">
+                      {activeTab === "workflows" ? "Total Workflows" : "Total Users"}
+                    </div>
+                  </div>
+                </div>
+                <div className="header-buttons">
+                  {activeTab === "workflows" && (
+                    <button className="create-btn" onClick={() => setShowCreate(true)}>
+                      <span className="btn-icon">+</span>
+                      Create Workflow
+                    </button>
+                  )}
+                  <button className="logout-btn" onClick={handleLogout}>
+                    🚪 Logout
+                  </button>
                 </div>
               </div>
-              <div className="header-buttons">
-                <button className="create-btn" onClick={() => setShowCreate(true)}>
-                  <span className="btn-icon">+</span>
-                  Create Workflow
-                </button>
-                <button className="logout-btn" onClick={handleLogout}>
-                  🚪 Logout
-                </button>
-              </div>
             </div>
-          </div>
-        </header>
-
-        <main className="main-content">
-          <section className="content-section">
-            <div className="section-header">
-              <h2>All Workflows</h2>
-              <div className="section-badge">Manage & Configure</div>
-            </div>
-            {workflows.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="workflows-grid">
-                {workflows.map((wf, index) => (
-                  <WorkflowCard
-                    key={wf.id ?? `workflow-${index}`}
-                    workflow={wf}
-                    onEdit={() => {
-                      setSelectedWorkflow(wf);
-                      setShowCreate(true);
-                    }}
-                    onDelete={() => deleteWorkflow(wf.id)}
-                  />
-                ))}
+          </header>
+          
+          <main className="main-content">
+            <section className="content-section">
+              <div className="section-header">
+                <h2>{activeTab === "workflows" ? "All Workflows" : "Active Users"}</h2>
+                <div className="section-badge">
+                  {activeTab === "workflows" ? "Manage & Configure" : "Access Control"}
+                </div>
               </div>
-            )}
-          </section>
-        </main>
+              
+              {loading ? (
+                <LoadingSpinner />
+              ) : activeTab === "workflows" ? (
+                workflows.length === 0 ? (
+                  <EmptyState />
+                ) : (
+                  <div className="workflows-grid">
+                    {workflows.map((wf, index) => (
+                      <WorkflowCard
+                        key={wf.id ?? `workflow-${index}`}
+                        workflow={wf}
+                        onEdit={() => {
+                          setSelectedWorkflow(wf);
+                          setShowCreate(true);
+                        }}
+                        onDelete={() => deleteWorkflow(wf.id)}
+                      />
+                    ))}
+                  </div>
+                )
+              ) : (
+                <UsersTable 
+                  users={users} 
+                  onRevoke={revokeAccess}
+                />
+              )}
+            </section>
+          </main>
+        </div>
       </div>
 
       {showCreate && (
@@ -177,26 +279,30 @@ export default function AdminDashboard() {
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         }
 
+        .admin-layout {
+          min-height: 100vh;
+        }
+
         .admin-app-wrapper {
           min-height: 100vh;
-          height: 100%;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
           display: flex;
           flex-direction: column;
         }
 
-        /* Header - Full Width */
         .admin-header {
-          position: sticky; 
-          top: 0; 
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
           background: rgba(255, 255, 255, 0.98);
-          backdrop-filter: blur(20px); 
+          backdrop-filter: blur(20px);
           border-bottom: 1px solid rgba(0,0,0,0.08);
-          z-index: 100; 
-          padding: 20px 5%; 
+          z-index: 1000;
+          padding: 20px 5%;
           box-shadow: 0 4px 30px rgba(0,0,0,0.1);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          animation: slideDown 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         @keyframes slideDown {
@@ -228,7 +334,7 @@ export default function AdminDashboard() {
           display: flex; 
           align-items: center; 
           gap: 12px;
-          animation: fadeInUp 0.8s ease-out;
+          animation: fadeInUp 0.6s ease-out;
         }
         
         @keyframes fadeInUp {
@@ -252,7 +358,7 @@ export default function AdminDashboard() {
           font-size: 16px; 
           color: #64748b; 
           font-weight: 500;
-          animation: fadeInUp 1s ease-out 0.2s both;
+          animation: fadeInUp 0.8s ease-out 0.2s both;
         }
 
         .header-actions { 
@@ -260,7 +366,110 @@ export default function AdminDashboard() {
           align-items: center; 
           gap: 24px; 
         }
-        
+
+        .dropdown-container {
+          position: relative;
+        }
+
+        .dropdown-toggle {
+          padding: 12px 24px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,250,252,0.9));
+          border: 1px solid rgba(0,0,0,0.08);
+          border-radius: 16px;
+          font-size: 15px;
+          font-weight: 600;
+          color: #1e293b;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          position: relative;
+          overflow: hidden;
+          min-height: 52px;
+        }
+
+        .dropdown-toggle:hover {
+          background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+          border-color: rgba(59,130,246,0.2);
+        }
+
+        .dropdown-icon {
+          font-size: 18px;
+        }
+
+        .dropdown-arrow {
+          font-size: 12px;
+          font-weight: 800;
+          transition: transform 0.3s ease;
+          margin-left: auto;
+        }
+
+        .dropdown-arrow.open {
+          transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+          border: 1px solid rgba(0,0,0,0.08);
+          margin-top: 8px;
+          overflow: hidden;
+          animation: dropdownSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          z-index: 1001;
+        }
+
+        @keyframes dropdownSlide {
+          from {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .dropdown-item {
+          width: 100%;
+          padding: 16px 20px;
+          background: none;
+          border: none;
+          text-align: left;
+          font-size: 15px;
+          font-weight: 600;
+          color: #475569;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          transition: all 0.3s ease;
+          border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .dropdown-item:last-child {
+          border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+          background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+          color: #1e293b;
+          padding-left: 28px;
+        }
+
+        .dropdown-item.active {
+          background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+          color: white !important;
+        }
+
         .stats-grid { 
           display: flex; 
           gap: 16px; 
@@ -314,10 +523,9 @@ export default function AdminDashboard() {
           display: flex;
           align-items: center; 
           gap: 8px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
-          animation: fadeInUp 1s ease-out 0.6s both;
         }
         
         .create-btn {
@@ -345,11 +553,10 @@ export default function AdminDashboard() {
           color: #475569;
         }
 
-        /* Full Page Main Content */
         .main-content { 
           flex: 1;
           max-width: 1400px; 
-          margin: 0 auto; 
+          margin: 140px auto 0; 
           padding: 40px 5%; 
           width: 100%;
         }
@@ -389,7 +596,6 @@ export default function AdminDashboard() {
           transform: scale(1.05);
         }
 
-        /* Full Width Grid */
         .workflows-grid {
           display: grid; 
           grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); 
@@ -397,7 +603,6 @@ export default function AdminDashboard() {
           width: 100%;
         }
 
-        /* Enhanced Cards */
         .workflow-card {
           background: white; 
           border-radius: 20px; 
@@ -558,7 +763,100 @@ export default function AdminDashboard() {
           box-shadow: 0 8px 25px rgba(220,38,38,0.3);
         }
 
-        /* Enhanced Empty & Loading States */
+        .users-table-container {
+          background: white;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+          border: 1px solid rgba(0,0,0,0.06);
+          animation: fadeInUp 0.3s ease-out 0.3s both;
+
+
+        }
+
+        .users-table-wrapper {
+          overflow-x: auto;
+        }
+
+        .users-table {
+          width: 100%;
+          min-width: 800px;
+        }
+
+        .users-table thead {
+          background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+
+        .users-table th {
+          padding: 20px 24px;
+          font-weight: 700;
+          color: #1e293b;
+          font-size: 14px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border-bottom: 2px solid #e2e8f0;
+          text-align: left;
+        }
+
+        .users-table td {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f1f5f9;
+          vertical-align: middle;
+        }
+
+        .users-table tr:hover {
+          background: rgba(59,130,246,0.04);
+        }
+
+        .user-name {
+          font-weight: 600;
+          color: #1e293b;
+          font-size: 16px;
+        }
+
+        .user-email {
+          color: #64748b;
+          font-size: 15px;
+        }
+
+        .user-role {
+          padding: 6px 16px;
+          border-radius: 20px;
+          font-size: 13px;
+          font-weight: 600;
+          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+          color: white;
+          min-width: 50px;
+          text-align: center;
+        }
+
+        .revoke-btn {
+          padding: 6px 12px;
+          background: linear-gradient(135deg, #fee2e2, #fecaca);
+          color: #dc2626;
+          border: 1px solid #fecaca;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          min-height: 32px;
+          width: auto;
+          justify-content: center;
+        }
+
+        .revoke-btn:hover {
+          background: #fecaca;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+        }
+
         .empty-state {
           text-align: center; 
           padding: 80px 40px; 
@@ -622,50 +920,57 @@ export default function AdminDashboard() {
           border-top: 4px solid #3b82f6;
           border-radius: 50%; 
           animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite,
-                          pulse 2s infinite;
+                            pulse 2s infinite;
         }
         
         @keyframes spin { 
           to { transform: rotate(360deg); } 
         }
 
-        /* Responsive */
+        @media (max-width: 1200px) {
+          .stats-grid {
+            display: none;
+          }
+        }
+
         @media (max-width: 768px) {
+          .admin-header {
+            padding: 16px 24px;
+          }
           .header-content { 
             flex-direction: column; 
             gap: 24px; 
             align-items: stretch; 
           }
-          
           .header-actions { 
             flex-direction: column; 
             gap: 20px; 
+            width: 100%;
           }
-          
           .header-buttons { 
             flex-direction: row; 
             gap: 12px; 
             width: 100%; 
             justify-content: center;
           }
-          
+          .main-content { 
+            margin-top: 120px;
+            padding: 24px 5%; 
+          }
           .workflows-grid { 
             grid-template-columns: 1fr; 
             gap: 20px;
           }
-          
-          .main-content { 
-            padding: 24px 5%; 
-          }
-          
-          .admin-header {
-            padding: 20px 5%;
-          }
         }
-        
+
         @media (max-width: 480px) {
           .header-buttons {
             flex-direction: column;
+            gap: 12px;
+          }
+          .dropdown-toggle {
+            width: 100%;
+            justify-content: space-between;
           }
         }
       `}</style>
@@ -673,7 +978,6 @@ export default function AdminDashboard() {
   );
 }
 
-// WorkflowCard, LoadingSpinner, EmptyState components with enhanced animations
 const WorkflowCard = ({ workflow, onEdit, onDelete }) => (
   <div className="workflow-card" style={{ animationDelay: `${Math.random() * 0.2}s` }}>
     <div className="card-content">
@@ -696,7 +1000,8 @@ const WorkflowCard = ({ workflow, onEdit, onDelete }) => (
           <span className="meta-value">
             {workflow.approvals?.length > 0 
               ? workflow.approvals.join(' → ') 
-              : 'Direct approval'}
+              : 'Direct approval'
+            }
           </span>
         </div>
       </div>
@@ -712,12 +1017,60 @@ const WorkflowCard = ({ workflow, onEdit, onDelete }) => (
   </div>
 );
 
+const UsersTable = ({ users, onRevoke }) => (
+  <div className="users-table-container">
+    <div className="users-table-wrapper">
+      <table className="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.length === 0 ? (
+            <tr>
+              <td colSpan="4" style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
+                No active users found
+              </td>
+            </tr>
+          ) : (
+            users.map((user) => (
+              <tr key={user.id}>
+                <td>
+                  <div className="user-name">{user.name}</div>
+                </td>
+                <td>
+                  <div className="user-email">{user.email}</div>
+                </td>
+                <td>
+                  <div className="user-role">{user.role}</div>
+                </td>
+                <td>
+                  <button 
+                    className="revoke-btn" 
+                    onClick={() => onRevoke(user.id)}
+                  >
+                    ❌ Revoke
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
 const LoadingSpinner = () => (
   <div className="loading-screen">
     <div className="spinner-container">
       <div className="spinner"></div>
       <p style={{ margin: 0, color: '#64748b', fontSize: '16px', fontWeight: '500' }}>
-        Loading workflows...
+        Loading...
       </p>
     </div>
   </div>
