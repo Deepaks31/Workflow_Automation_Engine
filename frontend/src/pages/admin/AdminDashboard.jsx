@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import CreateWorkflow from "./CreateWorkflow";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [workflows, setWorkflows] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("workflows");
+  const [activeTab, setActiveTab] = useState("workflows");  
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -198,10 +200,18 @@ export default function AdminDashboard() {
                 </div>
                 <div className="header-buttons">
                   {activeTab === "workflows" && (
-                    <button className="create-btn" onClick={() => setShowCreate(true)}>
-                      <span className="btn-icon">+</span>
-                      Create Workflow
-                    </button>
+                    <>
+                      <button className="create-btn" onClick={() => setShowCreate(true)}>
+                        <span className="btn-icon">+</span>
+                        Create Workflow
+                      </button>
+                      <button
+                        className="designer-btn"
+                        onClick={() => navigate("/admin/workflow-designer")}
+                      >
+                        🧩 Visual Designer
+                      </button>
+                    </>
                   )}
                   <button className="logout-btn" onClick={handleLogout}>
                     🚪 Logout
@@ -513,7 +523,7 @@ export default function AdminDashboard() {
           align-items: center; 
         }
         
-        .create-btn, .logout-btn {
+        .create-btn, .logout-btn, .designer-btn {
           padding: 12px 24px; 
           border-radius: 12px; 
           font-size: 15px; 
@@ -551,6 +561,17 @@ export default function AdminDashboard() {
           transform: translateY(-2px) scale(1.02);
           box-shadow: 0 8px 25px rgba(0,0,0,0.15);
           color: #475569;
+        }
+
+        .designer-btn {
+          background: linear-gradient(135deg, #f97316, #ea580c);
+          color: white;
+          box-shadow: 0 6px 20px rgba(234, 88, 12, 0.35);
+        }
+
+        .designer-btn:hover {
+          transform: translateY(-3px) scale(1.05);
+          box-shadow: 0 14px 30px rgba(234, 88, 12, 0.45);
         }
 
         .main-content { 

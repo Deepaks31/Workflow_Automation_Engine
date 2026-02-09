@@ -49,15 +49,21 @@ public class WorkflowService {
 
         existing.setName(updated.getName());
         existing.setDescription(updated.getDescription());
+        existing.setDesignerJson(updated.getDesignerJson());
         existing.setConditionField(updated.getConditionField());
         existing.setConditionOperator(updated.getConditionOperator());
         existing.setConditionValue(updated.getConditionValue());
+        existing.setEscalationHours(updated.getEscalationHours());
 
-        existing.getApprovalLevels().clear();
-        updated.getApprovalLevels().forEach(a -> {
-            a.setWorkflow(existing);
-            existing.getApprovalLevels().add(a);
-        });
+        if (existing.getApprovalLevels() != null) {
+            existing.getApprovalLevels().clear();
+        }
+        if (updated.getApprovalLevels() != null) {
+            updated.getApprovalLevels().forEach(a -> {
+                a.setWorkflow(existing);
+                existing.getApprovalLevels().add(a);
+            });
+        }
 
         return workflowRepository.save(existing);
     }

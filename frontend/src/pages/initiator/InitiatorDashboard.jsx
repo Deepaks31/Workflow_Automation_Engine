@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import StartRequestModal from "./StartRequestModal";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 
 export default function InitiatorDashboard() {
   const [workflows, setWorkflows] = useState([]);
@@ -13,6 +15,7 @@ export default function InitiatorDashboard() {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+  const [liveEvent, setLiveEvent] = useState(null);
   const initiatorId = Number(localStorage.getItem("userId"));
 
   // Status color utility function
@@ -60,6 +63,51 @@ export default function InitiatorDashboard() {
     loadWorkflows();
     loadRequests();
   }, [loadWorkflows, loadRequests]);
+
+  // WebSocket: live request tracking for this initiator
+  useEffect(() => {
+    if (!initiatorId) return;
+
+    const socket = new SockJS(`${import.meta.env.VITE_API_URL}/ws`);
+    const stompClient = new Client({
+      webSocketFactory: () => socket,
+      reconnectDelay: 5000,
+    });
+
+    stompClient.onConnect = () => {
+      stompClient.subscribe(`/topic/initiator.${initiatorId}`, (frame) => {
+        try {
+          const event = JSON.parse(frame.body);
+          setLiveEvent(event);
+          // merge into local requests for instant UI update
+          setRequests((prev) => {
+            const idx = prev.findIndex((r) => r.id === event.requestId);
+            if (idx === -1) return prev;
+            const updated = [...prev];
+            updated[idx] = {
+              ...updated[idx],
+              status: event.status,
+              currentLevel: event.currentLevel,
+              lastActionAt: event.at,
+            };
+            return updated;
+          });
+        } catch (e) {
+          console.error("Failed to parse WS event", e);
+        }
+      });
+    };
+
+    stompClient.activate();
+
+    return () => {
+      try {
+        stompClient.deactivate();
+      } catch (e) {
+        // ignore
+      }
+    };
+  }, [initiatorId]);
 
   // Scroll effect for header
   useEffect(() => {
@@ -131,6 +179,27 @@ export default function InitiatorDashboard() {
         </header>
 
         <main className="main-content">
+          {liveEvent && (
+            <div className="live-banner">
+              <div className="live-dot" />
+              <div className="live-text">
+                <strong>Live update:</strong>{" "}
+                Request #{liveEvent.requestId}{" "}
+                {liveEvent.type === "APPROVED"
+                  ? "has been fully approved"
+                  : liveEvent.type === "REJECTED"
+                  ? "was rejected"
+                  : "moved to the next level"}
+                .
+              </div>
+              <button
+                className="live-dismiss"
+                onClick={() => setLiveEvent(null)}
+              >
+                ×
+              </button>
+            </div>
+          )}
           <section className="content-section">
             <div className="section-header">
               <h3>Available Workflows</h3>
@@ -304,6 +373,37 @@ export default function InitiatorDashboard() {
 
         /* Main Content */
         .main-content { flex: 1; max-width: 1400px; margin: 0 auto; padding: 40px 5%; width: 100%; }
+
+        .live-banner {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: rgba(22, 163, 74, 0.12);
+          border: 1px solid rgba(22, 163, 74, 0.3);
+          margin-bottom: 18px;
+          animation: fadeInUp 0.3s ease-out;
+        }
+        .live-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #22c55e;
+          box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.4);
+        }
+        .live-text {
+          font-size: 13px;
+          color: #15803d;
+          flex: 1;
+        }
+        .live-dismiss {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 16px;
+          color: #166534;
+        }
         .content-section { margin-bottom: 64px; }
         .section-header {
           display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
@@ -343,6 +443,34 @@ export default function InitiatorDashboard() {
         .status-badge {
           padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .status-timeline {
+          margin-top: 10px;
+          margin-bottom: 10px;
+        }
+        .timeline-labels {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          color: #6b7280;
+          margin-bottom: 4px;
+        }
+        .timeline-bar {
+          position: relative;
+          height: 6px;
+          border-radius: 999px;
+          background: #e5e7eb;
+          overflow: hidden;
+        }
+        .timeline-progress {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #3b82f6, #22c55e);
+          transition: width 0.3s ease;
         }
         .request-details { margin: 20px 0; flex: 1; }
         .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #6b7280; }
@@ -535,41 +663,58 @@ const WorkflowCard = ({ workflow, isHovered, onHover, onWorkflowView, onStartReq
 );
 
 
-const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelete }) => (
-  <div className="card request-card">
-    <div className="card-header">
-      <h3>{workflow?.name || "Request"}</h3>
-      <div 
-        className="status-badge"
-        style={{ 
-          '--status-color': getStatusColor(request.status),
-          backgroundColor: 'hsl(var(--status-color), 60%, 90%)',
-          color: 'hsl(var(--status-color), 70%, 25%)'
-        }}
-      >
-        {request.status}
+const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelete }) => {
+  const totalLevels = workflow?.approvalLevels?.length || 1;
+  const clampedLevel = Math.min(request.currentLevel || 1, totalLevels);
+  const progress = Math.min((clampedLevel / totalLevels) * 100, 100);
+
+  return (
+    <div className="card request-card">
+      <div className="card-header">
+        <h3>{workflow?.name || "Request"}</h3>
+        <div
+          className="status-badge"
+          style={{
+            backgroundColor: getStatusColor(request.status),
+            color: "#ffffff",
+          }}
+        >
+          {request.status}
+        </div>
       </div>
-    </div>
-    <div className="request-details">
-      <div className="detail-row">
-        <span>Current Level:</span>
-        <strong>{request.currentLevel}</strong>
+
+      <div className="status-timeline">
+        <div className="timeline-labels">
+          <span>Started</span>
+          <span>{totalLevels > 1 ? `Level ${clampedLevel}/${totalLevels}` : "Single-level"}</span>
+          <span>{request.status === "APPROVED" ? "Approved" : request.status === "REJECTED" ? "Rejected" : "In progress"}</span>
+        </div>
+        <div className="timeline-bar">
+          <div className="timeline-progress" style={{ width: `${progress}%` }} />
+        </div>
       </div>
-    </div>
-    <div className="card-actions">
-      <div className="action-buttons-row">
-        {request.status === "REJECTED" && request.remarks && (
-          <button className="action-btn remarks-btn" onClick={onViewRemarks}>
-            📝 View Rejection Reason
+
+      <div className="request-details">
+        <div className="detail-row">
+          <span>Current Level:</span>
+          <strong>{clampedLevel}</strong>
+        </div>
+      </div>
+      <div className="card-actions">
+        <div className="action-buttons-row">
+          {request.status === "REJECTED" && request.remarks && (
+            <button className="action-btn remarks-btn" onClick={onViewRemarks}>
+              📝 View Rejection Reason
+            </button>
+          )}
+          <button className="action-btn delete-btn" onClick={onDelete}>
+            🗑 Delete Request
           </button>
-        )}
-        <button className="action-btn delete-btn" onClick={onDelete}>
-          🗑 Delete Request
-        </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const WorkflowModal = ({ workflow, getStatusColor, onClose, onStartRequest }) => (
   <div className="overlay">

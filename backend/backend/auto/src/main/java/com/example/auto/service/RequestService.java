@@ -2,13 +2,14 @@ package com.example.auto.service;
 
 import com.example.auto.dto.ActionRequestDto;
 import com.example.auto.dto.RequestDTO;
+import com.example.auto.dto.RequestEvent;
 import com.example.auto.model.*;
 import com.example.auto.repository.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,9 @@ public class RequestService {
 
     @Autowired
     private AuditLogRepository auditRepo;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     // ================= CREATE REQUEST =================
     public Request createRequest(RequestDTO dto) {
@@ -98,15 +102,21 @@ public class RequestService {
         boolean hasNextLevel = wf.getApprovalLevels().stream()
                 .anyMatch(l -> l.getLevelNo() == currentLevel + 1);
 
+        String eventType;
         if (hasNextLevel) {
             req.setCurrentLevel(currentLevel + 1);
             req.setStatus("PENDING");
+            eventType = "MOVED";
         } else {
             req.setStatus("APPROVED");
+            eventType = "APPROVED";
         }
 
         req.setLastActionAt(LocalDateTime.now());
         Request saved = requestRepo.save(req);
+
+        // fire websocket event for initiator
+        publishEvent(saved, eventType);
 
         auditLogService.log(
                 saved.getId(),
@@ -156,6 +166,9 @@ public class RequestService {
         historyRepo.save(history);
 
         Request saved = requestRepo.save(req);
+
+        // fire websocket event for initiator
+        publishEvent(saved, "REJECTED");
 
         auditLogService.log(
                 saved.getId(),
@@ -235,6 +248,20 @@ public class RequestService {
             result.add(map);
         }
         return result;
+    }
+
+    private void publishEvent(Request request, String type) {
+        RequestEvent event = new RequestEvent(
+                request.getId(),
+                request.getWorkflowId(),
+                request.getInitiatorId(),
+                request.getStatus(),
+                request.getCurrentLevel(),
+                type,
+                request.getLastActionAt()
+        );
+        String destination = "/topic/initiator." + request.getInitiatorId();
+        messagingTemplate.convertAndSend(destination, event);
     }
 
 }

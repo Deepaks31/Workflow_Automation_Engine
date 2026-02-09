@@ -13,6 +13,12 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
     { id: crypto.randomUUID(), role: "Manager" }
   ]);
 
+  // Intelligent Recommendation Engine state
+  const [riskScore, setRiskScore] = useState(null);
+  const [recommendedEscalation, setRecommendedEscalation] = useState(null);
+  const [recommendedApprovals, setRecommendedApprovals] = useState([]);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+
   // Prefill for edit
   useEffect(() => {
     if (workflow) {
@@ -30,6 +36,10 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
             }))
           : [{ id: crypto.randomUUID(), role: "Manager" }]
       );
+      setRiskScore(null);
+      setRecommendedEscalation(null);
+      setRecommendedApprovals([]);
+      setShowRecommendations(false);
     } else {
       setName("");
       setDescription("");
@@ -38,8 +48,73 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
       setAmount("");
       setEscalation("");
       setApprovals([{ id: crypto.randomUUID(), role: "Manager" }]);
+      setRiskScore(null);
+      setRecommendedEscalation(null);
+      setRecommendedApprovals([]);
+      setShowRecommendations(false);
     }
   }, [workflow]);
+
+  // Simple rule-based "AI" engine based on amount & request type (conditionField)
+  const generateRecommendations = () => {
+    const numericAmount = parseFloat(amount || "0");
+    let score = 20;
+    let suggestedEscalation = 24;
+    let suggestedApprovals = ["Manager"];
+
+    const field = (conditionField || "").toLowerCase();
+
+    // Base on amount
+    if (!isNaN(numericAmount)) {
+      if (numericAmount >= 50000) {
+        score += 50;
+        suggestedEscalation = 12;
+        if (!suggestedApprovals.includes("Finance")) {
+          suggestedApprovals.push("Finance");
+        }
+      } else if (numericAmount >= 20000) {
+        score += 30;
+        suggestedEscalation = 18;
+      } else if (numericAmount <= 5000) {
+        score -= 10;
+        suggestedEscalation = 36;
+      }
+    }
+
+    // Based on request "type" if admin uses a field like requestType
+    if (field.includes("travel") || field.includes("expense")) {
+      score += 10;
+    }
+    if (field.includes("capex") || field.includes("asset")) {
+      score += 20;
+      if (!suggestedApprovals.includes("Finance")) {
+        suggestedApprovals.push("Finance");
+      }
+    }
+
+    // Clamp score
+    if (score < 0) score = 0;
+    if (score > 100) score = 100;
+
+    setRiskScore(score);
+    setRecommendedEscalation(suggestedEscalation);
+    setRecommendedApprovals(suggestedApprovals);
+    setShowRecommendations(true);
+  };
+
+  const applyRecommendations = () => {
+    if (recommendedEscalation != null) {
+      setEscalation(String(recommendedEscalation));
+    }
+    if (recommendedApprovals.length) {
+      setApprovals(
+        recommendedApprovals.map((role) => ({
+          id: crypto.randomUUID(),
+          role
+        }))
+      );
+    }
+  };
 
   const addApprovalLevel = () => {
     if (approvals.length < 2) {
@@ -83,6 +158,19 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
             <h2>{isEdit ? "Edit Workflow" : "Create Workflow"}</h2>
             <p className="subtitle">Set up workflow conditions and approvals</p>
             <button className="close-btn" onClick={onClose}>×</button>
+          </div>
+
+          {/* AI Recommendation banner */}
+          <div className="ai-banner">
+            <div>
+              <div className="ai-title">Intelligent Workflow Recommendation Engine</div>
+              <div className="ai-subtitle">
+                Uses past patterns (amount & request profile) to suggest approval levels, escalation hours, and risk score.
+              </div>
+            </div>
+            <button className="ai-btn" type="button" onClick={generateRecommendations}>
+              ⚡ AI Recommendation
+            </button>
           </div>
 
           {/* Workflow Name */}
@@ -161,6 +249,59 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
             )}
           </div>
 
+          {/* AI Suggestions Panel */}
+          {showRecommendations && (
+            <div className="field ai-panel">
+              <div className="ai-panel-header">
+                <span className="ai-panel-title">AI Suggestions</span>
+                {riskScore != null && (
+                  <span className="ai-badge">
+                    Risk Score: {riskScore}/100
+                  </span>
+                )}
+              </div>
+              <ul className="ai-list">
+                {recommendedApprovals.length > 0 && (
+                  <li>
+                    ✅ Recommended approval levels:{" "}
+                    <strong>{recommendedApprovals.join(" → ")}</strong>
+                    {recommendedApprovals.includes("Finance") && (
+                      <span className="ai-hint">
+                        &nbsp;– High amount or financial impact detected, adding Finance approval.
+                      </span>
+                    )}
+                  </li>
+                )}
+                {recommendedEscalation != null && (
+                  <li>
+                    ✅ Suggested escalation window:{" "}
+                    <strong>{recommendedEscalation} hours</strong>
+                  </li>
+                )}
+                {riskScore != null && (
+                  <li>
+                    ✅ Overall workflow risk:{" "}
+                    <strong>
+                      {riskScore >= 70
+                        ? "High"
+                        : riskScore >= 40
+                        ? "Medium"
+                        : "Low"}
+                    </strong>{" "}
+                    ({riskScore}/100)
+                  </li>
+                )}
+              </ul>
+              <button
+                type="button"
+                className="ai-apply-btn"
+                onClick={applyRecommendations}
+              >
+                Apply Suggestions
+              </button>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="actions">
             <button className="cancel" onClick={onClose}>Cancel</button>
@@ -206,6 +347,40 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
         }
         .close-btn:hover { color: #6b7280; }
 
+        .ai-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 12px 20px 12px;
+          background: radial-gradient(circle at left, #eff6ff, #fdf2f8);
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .ai-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: #111827;
+        }
+        .ai-subtitle {
+          font-size: 11px;
+          color: #6b7280;
+        }
+        .ai-btn {
+          border-radius: 999px;
+          border: none;
+          padding: 8px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+          cursor: pointer;
+          box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4);
+        }
+        .ai-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 14px rgba(22, 163, 74, 0.45);
+        }
+
         .field { margin-bottom: 16px; padding: 0 20px; }
         .field:last-child { margin-bottom: 0; }
         .field label { 
@@ -246,6 +421,62 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
           font-size: 13px; font-weight: 500; transition: all 0.2s ease; width: 100%;
         }
         .add-btn:hover { background: #dbeafe; transform: translateY(-1px); }
+
+        .ai-panel {
+          background: #f8fafc;
+          border-radius: 12px;
+          padding-top: 12px;
+          padding-bottom: 16px;
+          margin-top: 4px;
+          border: 1px dashed #bfdbfe;
+        }
+        .ai-panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+        .ai-panel-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: #0f172a;
+        }
+        .ai-badge {
+          font-size: 11px;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: #eef2ff;
+          color: #4338ca;
+          font-weight: 600;
+        }
+        .ai-list {
+          list-style: none;
+          padding-left: 0;
+          margin: 0 0 10px 0;
+          font-size: 12px;
+          color: #374151;
+        }
+        .ai-list li + li {
+          margin-top: 4px;
+        }
+        .ai-hint {
+          font-size: 11px;
+          color: #6b7280;
+        }
+        .ai-apply-btn {
+          width: 100%;
+          border-radius: 999px;
+          border: 1px solid #3b82f6;
+          background: white;
+          color: #1d4ed8;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 8px 0;
+          cursor: pointer;
+        }
+        .ai-apply-btn:hover {
+          background: #eff6ff;
+        }
 
         .actions { 
           display: flex; justify-content: flex-end; gap: 12px; 

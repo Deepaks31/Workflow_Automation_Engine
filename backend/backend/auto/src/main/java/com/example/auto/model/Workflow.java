@@ -32,6 +32,11 @@ public class Workflow {
     private int escalationHours;
     private String createdBy;
 
+    // Stores the visual designer graph (React Flow nodes & edges) as JSON
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String designerJson;
+
     @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<ApprovalLevel> approvalLevels;

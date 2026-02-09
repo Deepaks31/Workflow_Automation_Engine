@@ -5,6 +5,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CreateWorkflow from "./pages/admin/CreateWorkflow";
+import WorkflowDesigner from "./pages/admin/WorkflowDesigner";
 import FinanceDashboard from "./pages/finance/FinanceDashboard";
 import InitiatorDashboard from "./pages/initiator/InitiatorDashboard";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
@@ -38,6 +39,15 @@ function App() {
         element={
           <ProtectedRoute role="ADMIN">
             <CreateWorkflow />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/workflow-designer"
+        element={
+          <ProtectedRoute role="ADMIN">
+            <WorkflowDesigner />
           </ProtectedRoute>
         }
       />
