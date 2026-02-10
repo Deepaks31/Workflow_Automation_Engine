@@ -54,6 +54,8 @@ public class WorkflowService {
         existing.setConditionOperator(updated.getConditionOperator());
         existing.setConditionValue(updated.getConditionValue());
         existing.setEscalationHours(updated.getEscalationHours());
+        existing.setRiskScore(updated.getRiskScore());
+        existing.setPriority(updated.getPriority());
 
         if (existing.getApprovalLevels() != null) {
             existing.getApprovalLevels().clear();

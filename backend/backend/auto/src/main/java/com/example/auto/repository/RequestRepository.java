@@ -29,13 +29,13 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
     @Query("""
         SELECT r
         FROM Request r
-        WHERE r.status = 'PENDING'
+        WHERE (r.status LIKE 'PENDING%' OR r.status LIKE 'ESCALATED%')
           AND EXISTS (
               SELECT 1
               FROM ApprovalLevel al
               WHERE al.workflow.id = r.workflowId
                 AND al.levelNo = r.currentLevel
-                AND al.role = :role
+                AND UPPER(al.role) = :role
           )
     """)
     List<Request> findPendingForRole(@Param("role") String role);
@@ -45,13 +45,13 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
     @Query("""
         SELECT r
         FROM Request r
-        WHERE r.status = 'PENDING'
+        WHERE (r.status LIKE 'PENDING%' OR r.status LIKE 'ESCALATED%')
           AND EXISTS (
               SELECT 1
               FROM ApprovalLevel al
               WHERE al.workflow.id = r.workflowId
                 AND al.levelNo = r.currentLevel
-                AND al.role = :role
+                AND UPPER(al.role) = :role
           )
     """)
     List<Request> findPendingForApprover(

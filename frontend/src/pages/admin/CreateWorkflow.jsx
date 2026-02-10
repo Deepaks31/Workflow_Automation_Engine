@@ -126,11 +126,32 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
     setApprovals(approvals.map(a => a.id === id ? { ...a, role: value } : a));
   };
 
+  const getPriorityFromScore = (score) => {
+    if (score == null) return "MEDIUM";
+    if (score >= 70) return "HIGH";
+    if (score >= 40) return "MEDIUM";
+    return "LOW";
+  };
+
   const submit = () => {
     if (!name || !conditionField || !amount || !escalation) {
       alert("Please fill all required fields");
       return;
     }
+
+    const numericAmount = parseFloat(amount);
+    const field = (conditionField || "").toLowerCase();
+    let computedScore = 20;
+    if (!isNaN(numericAmount)) {
+      if (numericAmount >= 50000) computedScore += 50;
+      else if (numericAmount >= 20000) computedScore += 30;
+      else if (numericAmount <= 5000) computedScore -= 10;
+    }
+    if (field.includes("travel") || field.includes("expense")) computedScore += 10;
+    if (field.includes("capex") || field.includes("asset")) computedScore += 20;
+    computedScore = Math.max(0, Math.min(100, computedScore));
+    const scoreToSave = riskScore != null ? riskScore : computedScore;
+    const priorityToSave = getPriorityFromScore(scoreToSave);
 
     const payload = {
       ...workflow,
@@ -138,9 +159,11 @@ function CreateWorkflow({ onClose, onCreate, workflow }) {
       description,
       conditionField,
       conditionOperator,
-      conditionValue: parseFloat(amount),
+      conditionValue: numericAmount,
       escalationHours: Number(escalation),
       createdBy: "Admin",
+      riskScore: scoreToSave,
+      priority: priorityToSave,
       approvalLevels: approvals.map((a, index) => ({
         levelNo: index + 1,
         role: a.role

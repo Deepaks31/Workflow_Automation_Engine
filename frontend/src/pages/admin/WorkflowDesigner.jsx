@@ -190,6 +190,17 @@ export default function WorkflowDesigner() {
     }
 
     const numericAmount = parseFloat(amount);
+    const field = (conditionField || "").toLowerCase();
+    let riskScore = 20;
+    if (!Number.isNaN(numericAmount)) {
+      if (numericAmount >= 50000) riskScore += 50;
+      else if (numericAmount >= 20000) riskScore += 30;
+      else if (numericAmount <= 5000) riskScore -= 10;
+    }
+    if (field.includes("travel") || field.includes("expense")) riskScore += 10;
+    if (field.includes("capex") || field.includes("asset")) riskScore += 20;
+    riskScore = Math.max(0, Math.min(100, riskScore));
+    const priority = riskScore >= 70 ? "HIGH" : riskScore >= 40 ? "MEDIUM" : "LOW";
 
     const payload = {
       name: workflowName.trim(),
@@ -199,6 +210,8 @@ export default function WorkflowDesigner() {
       conditionValue: Number.isNaN(numericAmount) ? null : numericAmount,
       escalationHours: Number(escalation),
       createdBy: "Admin",
+      riskScore,
+      priority,
       approvalLevels: approvals.map((a, index) => ({
         levelNo: index + 1,
         role: a.role,

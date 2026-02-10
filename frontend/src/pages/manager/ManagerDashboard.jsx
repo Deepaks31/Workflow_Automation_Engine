@@ -122,20 +122,43 @@ export default function ApproverDashboard() {
               <EmptyState />
             ) : (
               <div className="grid">
-                {requests.map((item) => {
+                {[...requests]
+                  .sort((a, b) => {
+                    const overdueA = (a.minutesRemaining != null && a.minutesRemaining < 0) ? 1 : 0;
+                    const overdueB = (b.minutesRemaining != null && b.minutesRemaining < 0) ? 1 : 0;
+                    if (overdueB !== overdueA) return overdueB - overdueA;
+                    const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+                    const pa = order[a.priority] ?? 1;
+                    const pb = order[b.priority] ?? 1;
+                    if (pa !== pb) return pa - pb;
+                    return (a.minutesRemaining ?? 999999) - (b.minutesRemaining ?? 999999);
+                  })
+                  .map((item) => {
                   const r = item.request;
-                  const data = JSON.parse(r.requestData);
-                  const isEscalated = r.escalated; // Assuming API provides this
+                  const data = JSON.parse(r.requestData || "{}");
+                  const isEscalated = r.escalated;
                   return (
                     <RequestCard
                       key={r.id}
                       request={r}
                       initiatorName={item.initiatorName}
+                      workflowName={item.workflowName}
+                      riskScore={item.riskScore}
+                      priority={item.priority}
+                      hoursRemaining={item.hoursRemaining}
+                      minutesRemaining={item.minutesRemaining}
+                      escalationHours={item.escalationHours}
                       data={data}
                       isEscalated={isEscalated}
                       onClick={() => setActiveRequest({
                         ...item.request,
                         initiatorName: item.initiatorName,
+                        workflowName: item.workflowName,
+                        riskScore: item.riskScore,
+                        priority: item.priority,
+                        hoursRemaining: item.hoursRemaining,
+                        minutesRemaining: item.minutesRemaining,
+                        escalationHours: item.escalationHours,
                       })}
                     />
                   );
@@ -280,6 +303,24 @@ export default function ApproverDashboard() {
         .status-indicator { width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
         .workflow-id { font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+        .approval-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .risk-badge {
+          font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+          background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e;
+        }
+        .priority-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+        .priority-high { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #b91c1c; }
+        .priority-medium { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
+        .priority-low { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; }
+        .escalation-timing {
+          font-size: 13px; padding: 8px 12px; border-radius: 10px; margin-bottom: 12px;
+          background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+        }
+        .escalation-timing.escalation-overdue {
+          background: #fef2f2; border-color: #fecaca; color: #b91c1c;
+        }
+        .escalation-label { margin-right: 6px; }
+        .escalation-window { font-size: 11px; color: #64748b; margin-left: 6px; }
         .initiator-info { font-size: 14px; color: #374151; margin-bottom: 16px; }
         .badge.escalated {
           display: inline-block; background: linear-gradient(135deg, #ef4444, #dc2626);
@@ -331,6 +372,7 @@ export default function ApproverDashboard() {
         .detail:last-child { border-bottom: none; margin-bottom: 0; }
         .detail span { color: #64748b; font-weight: 500; min-width: 100px; }
         .detail strong { color: #1f2937; font-weight: 600; }
+        .detail.detail-overdue strong { color: #b91c1c; }
         
         .reason-box {
           max-width: 65%; max-height: 120px; overflow-y: auto; padding: 12px;
@@ -414,23 +456,56 @@ export default function ApproverDashboard() {
 }
 
 // Components
-const RequestCard = ({ request, initiatorName, data, isEscalated, onClick }) => (
-  <div className="card request-card" onClick={onClick}>
-    <div className="card-header">
-      <h3 className="workflow-id">Workflow #{request.workflowId}</h3>
-      <div className="status-indicator"></div>
+function formatTimeLeft(hoursRemaining, minutesRemaining) {
+  if (hoursRemaining == null && minutesRemaining == null) return null;
+  const mins = minutesRemaining != null ? minutesRemaining : Math.round((hoursRemaining || 0) * 60);
+  if (mins < 0) return `Overdue by ${Math.abs(mins)} min`;
+  if (mins < 60) return `${mins} min left`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m left` : `${h} hour${h !== 1 ? "s" : ""} left`;
+}
+
+const RequestCard = ({ request, initiatorName, workflowName, riskScore, priority, hoursRemaining, minutesRemaining, escalationHours, data, isEscalated, onClick }) => {
+  const timeLabel = formatTimeLeft(hoursRemaining, minutesRemaining);
+  const isOverdue = (minutesRemaining != null && minutesRemaining < 0) || (hoursRemaining != null && hoursRemaining < 0);
+  const priorityClass = priority === "HIGH" ? "priority-high" : priority === "LOW" ? "priority-low" : "priority-medium";
+  return (
+    <div className="card request-card" onClick={onClick}>
+      <div className="card-header">
+        <h3 className="workflow-id">{workflowName || "Workflow #" + request.workflowId}</h3>
+        <div className="status-indicator"></div>
+      </div>
+      <div className="approval-meta">
+        {riskScore != null && (
+          <span className="risk-badge">Risk: {riskScore}/100</span>
+        )}
+        <span className={`priority-badge ${priorityClass}`}>{priority || "MEDIUM"}</span>
+      </div>
+      {timeLabel && (
+        <div className={`escalation-timing ${isOverdue ? "escalation-overdue" : ""}`}>
+          <span className="escalation-label">⏱ Escalation:</span>
+          <strong>{timeLabel}</strong>
+          {escalationHours != null && (
+            <span className="escalation-window">(window: {escalationHours}h)</span>
+          )}
+        </div>
+      )}
+      <div className="initiator-info">
+        <div>Initiator: <strong>{initiatorName}</strong></div>
+      </div>
+      {isEscalated && <div className="badge escalated">ESCALATED</div>}
+      <div className="hint">Click to review →</div>
     </div>
-    <div className="initiator-info">
-      <div>Initiator ID: <strong>{request.initiatorId}</strong></div>
-      <div>Initiator: <strong>{initiatorName}</strong></div>
-    </div>
-    {isEscalated && <div className="badge escalated">ESCALATED</div>}
-    <div className="hint">Click to review →</div>
-  </div>
-);
+  );
+};
 
 const RequestReviewModal = ({ request, remarks, showRejectBox, onApprove, onReject, onClose, onToggleReject, onRemarksChange }) => {
-  const data = JSON.parse(request.requestData);
+  const data = JSON.parse(request.requestData || "{}");
+  const timeLabel = request.minutesRemaining != null
+    ? formatTimeLeft(request.hoursRemaining, request.minutesRemaining)
+    : request.hoursRemaining != null ? formatTimeLeft(request.hoursRemaining, null) : null;
+  const isOverdue = (request.minutesRemaining != null && request.minutesRemaining < 0) || (request.hoursRemaining != null && request.hoursRemaining < 0);
   return (
     <div className="overlay">
       <div className="modal">
@@ -441,14 +516,28 @@ const RequestReviewModal = ({ request, remarks, showRejectBox, onApprove, onReje
         <div className="modal-content">
           <div className="detail">
             <span>Workflow</span>
-            <strong>#{request.workflowId}</strong>
+            <strong>{request.workflowName || "#" + request.workflowId}</strong>
           </div>
+          {request.riskScore != null && (
+            <div className="detail">
+              <span>Risk Score</span>
+              <strong>{request.riskScore}/100</strong>
+            </div>
+          )}
+          {request.priority && (
+            <div className="detail">
+              <span>Priority</span>
+              <strong>{request.priority}</strong>
+            </div>
+          )}
+          {timeLabel && (
+            <div className={`detail ${isOverdue ? "detail-overdue" : ""}`}>
+              <span>Time to escalate</span>
+              <strong>{timeLabel}</strong>
+            </div>
+          )}
           <div className="detail">
-            <span>Initiator ID</span>
-            <strong>{request.initiatorId}</strong>
-          </div>
-          <div className="detail">
-            <span>Initiator Name</span>
+            <span>Initiator</span>
             <strong>{request.initiatorName}</strong>
           </div>
           {data.amount && (

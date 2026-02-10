@@ -2,6 +2,23 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
+function getStatusMeta(status) {
+  const s = String(status || "");
+  if (s.startsWith("PENDING_ESCALATED")) {
+    return { label: "ESCALATED", cls: "escalated" };
+  }
+  if (s.startsWith("ESCALATED_")) {
+    return { label: "ESCALATED", cls: "escalated" };
+  }
+  if (s === "AUTO_REJECTED" || s === "zREJECTED") {
+    return { label: "AUTO_REJECTED", cls: "auto_rejected" };
+  }
+  if (s === "PENDING") return { label: "PENDING", cls: "pending" };
+  if (s === "APPROVED") return { label: "APPROVED", cls: "approved" };
+  if (s === "REJECTED") return { label: "REJECTED", cls: "rejected" };
+  return { label: s || "-", cls: "pending" };
+}
+
 const AuditTable = ({ requests, onViewDetails, page, totalPages, setPage }) => (
   <div className="audit-table-wrapper">
     <table className="audit-table">
@@ -29,11 +46,14 @@ const AuditTable = ({ requests, onViewDetails, page, totalPages, setPage }) => (
                 {r.initiatorName}
               </td>
               <td data-label="Status">
-                <span
-                  className={`status-pill status-${req.status?.toLowerCase()}`}
-                >
-                  {req.status}
-                </span>
+                {(() => {
+                  const meta = getStatusMeta(req.status);
+                  return (
+                    <span className={`status-pill status-${meta.cls}`}>
+                      {meta.label}
+                    </span>
+                  );
+                })()}
               </td>
               <td data-label="Level">{req.currentLevel}</td>
               <td data-label="Approver">{last?.approverId ?? "-"}</td>
@@ -65,7 +85,15 @@ const AuditDetailsModal = ({ request, parsedData, requestLogs, onClose }) => (
       <div className="modal-content">
         <div className="info-grid">
           <div className="info-item">
-            <strong>Status:</strong> {request.status}
+            <strong>Status:</strong>{" "}
+            {(() => {
+              const meta = getStatusMeta(request.status);
+              return (
+                <span className={`status-pill status-${meta.cls}`}>
+                  {meta.label}
+                </span>
+              );
+            })()}
           </div>
           <div className="info-item">
             <strong>Initiator ID:</strong> {request.initiatorId}
@@ -548,7 +576,8 @@ export default function AuditorDashboard() {
         }
         .status-approved { background: linear-gradient(135deg, #10b981, #059669); color: white; }
         .status-rejected { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
-        .status-escalated { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .status-escalated { background: linear-gradient(135deg, #f97316, #dc2626); color: white; }
+        .status-auto_rejected { background: linear-gradient(135deg, #991b1b, #7f1d1d); color: white; }
         .status-pending { 
           background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
           color: white; box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);

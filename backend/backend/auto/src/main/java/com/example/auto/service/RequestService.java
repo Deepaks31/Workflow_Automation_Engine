@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -188,32 +189,51 @@ public class RequestService {
 
     // ================= ROLE BASED =================
     public List<Map<String, Object>> getPendingForManagerWithNames(Long managerId) {
-
         return requestRepo.findPendingForApprover(managerId, "MANAGER")
                 .stream()
-                .map(r -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("request", r);
-                    m.put("initiatorName",
-                            userRepo.findById(r.getInitiatorId())
-                                    .map(User::getName).orElse("Unknown"));
-                    return m;
-                }).toList();
+                .map(this::enrichPendingItem)
+                .toList();
     }
 
-
     public List<Map<String, Object>> getPendingForFinanceWithNames(Long financeId) {
-
         return requestRepo.findPendingForApprover(financeId, "FINANCE")
                 .stream()
-                .map(r -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("request", r);
-                    m.put("initiatorName",
-                            userRepo.findById(r.getInitiatorId())
-                                    .map(User::getName).orElse("Unknown"));
-                    return m;
-                }).toList();
+                .map(this::enrichPendingItem)
+                .toList();
+    }
+
+    /** Adds workflow name, risk score, priority, and escalation timing for approver dashboards */
+    private Map<String, Object> enrichPendingItem(Request r) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("request", r);
+        m.put("initiatorName",
+                userRepo.findById(r.getInitiatorId())
+                        .map(User::getName).orElse("Unknown"));
+
+        Workflow wf = workflowRepo.findById(r.getWorkflowId()).orElse(null);
+        if (wf != null) {
+            m.put("workflowName", wf.getName());
+            m.put("escalationHours", wf.getEscalationHours());
+            m.put("riskScore", wf.getRiskScore());
+            m.put("priority", wf.getPriority() != null ? wf.getPriority() : "MEDIUM");
+
+            LocalDateTime deadline = r.getLastActionAt().plusHours(Math.max(1, wf.getEscalationHours()));
+            m.put("escalationDeadline", deadline.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            long minutesRemaining = java.time.temporal.ChronoUnit.MINUTES.between(LocalDateTime.now(), deadline);
+            m.put("minutesRemaining", minutesRemaining);
+            m.put("hoursRemaining", Math.round(minutesRemaining / 60.0 * 10) / 10.0);
+        } else {
+            m.put("workflowName", "Workflow #" + r.getWorkflowId());
+            m.put("escalationHours", 24);
+            m.put("riskScore", null);
+            m.put("priority", "MEDIUM");
+            LocalDateTime deadline = r.getLastActionAt().plusHours(24);
+            m.put("escalationDeadline", deadline.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            long minutesRemaining = java.time.temporal.ChronoUnit.MINUTES.between(LocalDateTime.now(), deadline);
+            m.put("minutesRemaining", minutesRemaining);
+            m.put("hoursRemaining", Math.round(minutesRemaining / 60.0 * 10) / 10.0);
+        }
+        return m;
     }
 
     public List<Map<String, Object>> getRequestsSummary() {

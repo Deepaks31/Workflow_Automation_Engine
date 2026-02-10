@@ -32,6 +32,11 @@ public class Workflow {
     private int escalationHours;
     private String createdBy;
 
+    /** Risk score 0-100 for prioritization in approver dashboards */
+    private Integer riskScore;
+    /** Priority: HIGH, MEDIUM, LOW */
+    private String priority;
+
     // Stores the visual designer graph (React Flow nodes & edges) as JSON
     @Lob
     @Column(columnDefinition = "TEXT")

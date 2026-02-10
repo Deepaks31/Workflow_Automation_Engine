@@ -20,13 +20,18 @@ export default function InitiatorDashboard() {
 
   // Status color utility function
   const getStatusColor = (status) => {
+    if (!status) return "#6b7280";
+    const s = String(status);
+    if (s.startsWith("ESCALATED_")) return "#f97316"; // legacy escalated status
+    if (s.startsWith("PENDING_ESCALATED")) return "#f97316"; // orange for escalated
+    if (s === "AUTO_REJECTED" || s === "zREJECTED") return "#991b1b"; // deep red for auto-rejected
     const colors = {
-      PENDING: '#f59e0b',
-      APPROVED: '#10b981',
-      REJECTED: '#ef4444',
-      COMPLETED: '#3b82f6'
+      PENDING: "#f59e0b",
+      APPROVED: "#10b981",
+      REJECTED: "#ef4444",
+      COMPLETED: "#3b82f6",
     };
-    return colors[status] || '#6b7280';
+    return colors[s] || "#6b7280";
   };
 
   // Load workflows
@@ -445,6 +450,16 @@ export default function InitiatorDashboard() {
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
+        .status-badge.status-escalated {
+          border: 1px solid rgba(239, 68, 68, 0.6);
+          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18), 0 10px 25px rgba(239, 68, 68, 0.25);
+        }
+
+        .status-badge.status-auto-rejected {
+          border: 1px solid rgba(220, 38, 38, 0.6);
+          box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15), 0 10px 25px rgba(220, 38, 38, 0.22);
+        }
+
         .status-timeline {
           margin-top: 10px;
           margin-bottom: 10px;
@@ -672,22 +687,52 @@ const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelet
     <div className="card request-card">
       <div className="card-header">
         <h3>{workflow?.name || "Request"}</h3>
+        {/*
+          Normalize legacy/backend statuses:
+          - PENDING_ESCALATED_* or ESCALATED_* -> Escalated
+          - zREJECTED -> AUTO REJECTED
+        */}
+        {(() => {
+          const s = String(request.status || "");
+          const isEscalated = s.startsWith("PENDING_ESCALATED") || s.startsWith("ESCALATED_");
+          const isAutoRejected = s === "AUTO_REJECTED" || s === "zREJECTED";
+          const badgeText = isEscalated
+            ? "Escalated"
+            : isAutoRejected
+            ? "Auto Rejected"
+            : request.status;
+          const badgeClass = isEscalated
+            ? "status-escalated"
+            : isAutoRejected
+            ? "status-auto-rejected"
+            : "";
+          return (
         <div
-          className="status-badge"
+          className={`status-badge ${badgeClass}`}
           style={{
             backgroundColor: getStatusColor(request.status),
             color: "#ffffff",
           }}
         >
-          {request.status}
+          {badgeText}
         </div>
+          );
+        })()}
       </div>
 
       <div className="status-timeline">
         <div className="timeline-labels">
           <span>Started</span>
           <span>{totalLevels > 1 ? `Level ${clampedLevel}/${totalLevels}` : "Single-level"}</span>
-          <span>{request.status === "APPROVED" ? "Approved" : request.status === "REJECTED" ? "Rejected" : "In progress"}</span>
+          <span>
+            {(() => {
+              const s = String(request.status || "");
+              if (request.status === "APPROVED") return "Approved";
+              if (request.status === "REJECTED" || s === "AUTO_REJECTED" || s === "zREJECTED") return "Rejected";
+              if (s.startsWith("PENDING_ESCALATED") || s.startsWith("ESCALATED_")) return "Escalated";
+              return "In progress";
+            })()}
+          </span>
         </div>
         <div className="timeline-bar">
           <div className="timeline-progress" style={{ width: `${progress}%` }} />
@@ -702,7 +747,8 @@ const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelet
       </div>
       <div className="card-actions">
         <div className="action-buttons-row">
-          {request.status === "REJECTED" && request.remarks && (
+        {(request.status === "REJECTED" || request.status === "AUTO_REJECTED") &&
+          request.remarks && (
             <button className="action-btn remarks-btn" onClick={onViewRemarks}>
               📝 View Rejection Reason
             </button>

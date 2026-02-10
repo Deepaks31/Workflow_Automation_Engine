@@ -82,7 +82,8 @@ public class EscalationService {
 
             // 🔼 Escalate to next level
             req.setCurrentLevel(nextLevel);
-            req.setStatus("ESCALATED_" + currentLevel);
+            // Keep it visible in approver queues (they query status starting with PENDING)
+            req.setStatus("PENDING_ESCALATED_L" + currentLevel);
             req.setLastActionAt(LocalDateTime.now());
 
             history.setToLevel(nextLevel);
@@ -91,8 +92,10 @@ public class EscalationService {
 
         } else {
 
-            // ❌ Auto reject
-            req.setStatus("zREJECTED");
+            // ❌ No next level -> stop and mark as auto rejected (friendly status)
+            req.setStatus("AUTO_REJECTED");
+            req.setRemarks("Auto-rejected: No further approval levels available after escalation.");
+            req.setLastActionAt(LocalDateTime.now());
 
             history.setAction("AUTO_REJECTED");
             history.setReason("No further approval levels");
