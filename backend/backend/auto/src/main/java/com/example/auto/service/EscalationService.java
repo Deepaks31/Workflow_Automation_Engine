@@ -31,9 +31,7 @@ public class EscalationService {
     @Transactional
     public void processEscalations() {
 
-        List<Request> pendingRequests =
-                requestRepo.findByStatusStartingWith("PENDING");
-
+        List<Request> pendingRequests = requestRepo.findByStatusStartingWith("PENDING");
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -43,17 +41,19 @@ public class EscalationService {
                     .findById(req.getWorkflowId())
                     .orElse(null);
 
-            if (workflow == null) continue;
+            if (workflow == null)
+                continue;
 
             // Admin-configured escalation hours
             int escalationHours = workflow.getEscalationHours();
-            if (escalationHours <= 0) continue;
+            if (escalationHours <= 0)
+                continue;
 
             LocalDateTime lastActionAt = req.getLastActionAt();
-            if (lastActionAt == null) continue;
+            if (lastActionAt == null)
+                continue;
 
-            long hoursPassed =
-                    Duration.between(lastActionAt, now).toHours();
+            long hoursPassed = Duration.between(lastActionAt, now).toHours();
 
             if (hoursPassed >= escalationHours) {
                 escalate(req, workflow);
@@ -90,14 +90,12 @@ public class EscalationService {
             history.setAction("ESCALATED");
             history.setReason("Approval SLA breached");
 
-        } else {
-
             // ❌ No next level -> stop and mark as auto rejected (friendly status)
-            req.setStatus("AUTO_REJECTED");
+            req.setStatus("SLA_BREACHED");
             req.setRemarks("Auto-rejected: No further approval levels available after escalation.");
             req.setLastActionAt(LocalDateTime.now());
 
-            history.setAction("AUTO_REJECTED");
+            history.setAction("SLA_BREACHED");
             history.setReason("No further approval levels");
         }
 

@@ -118,7 +118,7 @@ export default function FinanceDashboard() {
               <h3>Finance Approvals</h3>
               <p className="section-subtitle">Auto-refreshes every 30 seconds</p>
             </div>
-            {requests.length === 0 ? (
+            {(!Array.isArray(requests) || requests.length === 0) ? (
               <EmptyState />
             ) : (
               <div className="grid">
@@ -134,34 +134,34 @@ export default function FinanceDashboard() {
                     return (a.minutesRemaining ?? 999999) - (b.minutesRemaining ?? 999999);
                   })
                   .map((item) => {
-                  const req = item.request;
-                  const data = JSON.parse(req.requestData || "{}");
-                  return (
-                    <RequestCard
-                      key={req.id}
-                      request={req}
-                      initiatorName={item.initiatorName}
-                      workflowName={item.workflowName}
-                      riskScore={item.riskScore}
-                      priority={item.priority}
-                      hoursRemaining={item.hoursRemaining}
-                      minutesRemaining={item.minutesRemaining}
-                      escalationHours={item.escalationHours}
-                      data={data}
-                      isEscalated={req.status?.startsWith("ESCALATED")}
-                      onClick={() => setActiveRequest({
-                        ...req,
-                        initiatorName: item.initiatorName,
-                        workflowName: item.workflowName,
-                        riskScore: item.riskScore,
-                        priority: item.priority,
-                        hoursRemaining: item.hoursRemaining,
-                        minutesRemaining: item.minutesRemaining,
-                        escalationHours: item.escalationHours,
-                      })}
-                    />
-                  );
-                })}
+                    const req = item.request;
+                    const data = JSON.parse(req.requestData || "{}");
+                    return (
+                      <RequestCard
+                        key={req.id}
+                        request={req}
+                        initiatorName={item.initiatorName}
+                        workflowName={item.workflowName}
+                        riskScore={item.riskScore}
+                        priority={item.priority}
+                        hoursRemaining={item.hoursRemaining}
+                        minutesRemaining={item.minutesRemaining}
+                        escalationHours={item.escalationHours}
+                        data={data}
+                        isEscalated={req.status?.startsWith("ESCALATED")}
+                        onClick={() => setActiveRequest({
+                          ...req,
+                          initiatorName: item.initiatorName,
+                          workflowName: item.workflowName,
+                          riskScore: item.riskScore,
+                          priority: item.priority,
+                          hoursRemaining: item.hoursRemaining,
+                          minutesRemaining: item.minutesRemaining,
+                          escalationHours: item.escalationHours,
+                        })}
+                      />
+                    );
+                  })}
               </div>
             )}
           </section>
@@ -563,7 +563,7 @@ const RequestReviewModal = ({ request, remarks, showRejectBox, onApprove, onReje
               <div className="reason-box">{data.reason}</div>
             </div>
           )}
-          
+
           {showRejectBox && (
             <div className="remarks-section">
               <label className="remarks-label">Rejection Remarks *</label>

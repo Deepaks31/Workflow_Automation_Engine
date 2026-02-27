@@ -11,91 +11,95 @@ import InitiatorDashboard from "./pages/initiator/InitiatorDashboard";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import AuditorDashboard from "./pages/auditor/AuditorDashboard";
 import HomeDashboard from "./components/HomeDashboard";
+import ChatBot from "./components/ChatBot"; // Add ChatBot import
 
 function App() {
   return (
-    <Routes>
+    <>
+      <Routes>
 
-      {/* Default Route */}
-      <Route path="/" element={<HomeDashboard />} />
-
-
-      {/* Public Routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-
-      {/* Admin Routes */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute role="ADMIN">
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin/create-workflow"
-        element={
-          <ProtectedRoute role="ADMIN">
-            <CreateWorkflow />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin/workflow-designer"
-        element={
-          <ProtectedRoute role="ADMIN">
-            <WorkflowDesigner />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Initiator */}
-      <Route
-        path="/initiator"
-        element={
-          <ProtectedRoute role="INITIATOR">
-            <InitiatorDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Approver */}
-      <Route
-        path="/manager"
-        element={
-          <ProtectedRoute role="MANAGER">
-            <ManagerDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/finance"
-        element={
-          <ProtectedRoute role="FINANCE">
-            <FinanceDashboard />
-          </ProtectedRoute>
-        }
-      />
+        {/* Default Route */}
+        <Route path="/" element={<HomeDashboard />} />
 
 
-      {/* Auditor */}
-      <Route
-        path="/auditor"
-        element={
-          <ProtectedRoute role="AUDITOR">
-            <AuditorDashboard />
-          </ProtectedRoute>
-        }
-      />
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/login" />} />
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-    </Routes>
+        <Route
+          path="/admin/create-workflow"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <CreateWorkflow />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/workflow-designer"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <WorkflowDesigner />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Initiator */}
+        <Route
+          path="/initiator"
+          element={
+            <ProtectedRoute role="INITIATOR">
+              <InitiatorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Approver */}
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute role="MANAGER">
+              <ManagerDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/finance"
+          element={
+            <ProtectedRoute role="FINANCE">
+              <FinanceDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* Auditor */}
+        <Route
+          path="/auditor"
+          element={
+            <ProtectedRoute role="AUDITOR">
+              <AuditorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/login" />} />
+
+      </Routes>
+      <ChatBot /> {/* Render global ChatBot widget */}
+    </>
   );
 }
 

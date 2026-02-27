@@ -60,4 +60,14 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
     );
 
     Page<Request> findAll(Pageable pageable);
+
+    // Monthly approved counts since given date (MySQL)
+    @Query(value = """
+            SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) 
+            FROM requests 
+            WHERE status = 'APPROVED' AND created_at >= :fromDate
+            GROUP BY ym
+            ORDER BY ym
+            """, nativeQuery = true)
+    List<Object[]> findApprovedCountsByMonthSince(@Param("fromDate") java.time.LocalDateTime fromDate);
 }

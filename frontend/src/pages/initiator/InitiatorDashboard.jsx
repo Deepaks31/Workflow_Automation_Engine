@@ -14,6 +14,7 @@ export default function InitiatorDashboard() {
   const [loading, setLoading] = useState(true);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [viewRequestDetails, setViewRequestDetails] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [liveEvent, setLiveEvent] = useState(null);
   const initiatorId = Number(localStorage.getItem("userId"));
@@ -125,9 +126,9 @@ export default function InitiatorDashboard() {
 
   // Body scroll lock
   useEffect(() => {
-    document.body.style.overflow = (viewRemarks || viewWorkflow || selectedWorkflow) ? "hidden" : "auto";
+    document.body.style.overflow = (viewRemarks || viewWorkflow || selectedWorkflow || viewRequestDetails) ? "hidden" : "auto";
     return () => (document.body.style.overflow = "auto");
-  }, [viewRemarks, viewWorkflow, selectedWorkflow]);
+  }, [viewRemarks, viewWorkflow, selectedWorkflow, viewRequestDetails]);
 
   const deleteRequest = (requestId) => {
     if (!window.confirm("Are you sure you want to delete this request?")) return;
@@ -172,8 +173,8 @@ export default function InitiatorDashboard() {
                   <div className="stat-label">Available Workflows</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-value">{requests.length}</div>
-                  <div className="stat-label">My Requests</div>
+                  <div className="stat-value">{Array.isArray(requests) ? requests.filter(r => String(r.status).startsWith('PENDING') || String(r.status).startsWith('ESCALATED')).length : 0}</div>
+                  <div className="stat-label">Pending Requests</div>
                 </div>
               </div>
               <button className="logout-btn" onClick={handleLogout}>
@@ -193,8 +194,8 @@ export default function InitiatorDashboard() {
                 {liveEvent.type === "APPROVED"
                   ? "has been fully approved"
                   : liveEvent.type === "REJECTED"
-                  ? "was rejected"
-                  : "moved to the next level"}
+                    ? "was rejected"
+                    : "moved to the next level"}
                 .
               </div>
               <button
@@ -232,7 +233,7 @@ export default function InitiatorDashboard() {
                 <LoadingCard />
                 <LoadingCard />
               </div>
-            ) : requests.length === 0 ? (
+            ) : (!Array.isArray(requests) || requests.length === 0) ? (
               <EmptyState />
             ) : (
               <div className="grid">
@@ -245,6 +246,7 @@ export default function InitiatorDashboard() {
                       workflow={wf}
                       getStatusColor={getStatusColor}
                       onViewRemarks={() => setViewRemarks(r.remarks)}
+                      onViewDetails={() => setViewRequestDetails(r)}
                       onDelete={() => deleteRequest(r.id)}
                     />
                   );
@@ -269,9 +271,16 @@ export default function InitiatorDashboard() {
         <RemarksModal remarks={viewRemarks} onClose={() => setViewRemarks(null)} />
       )}
 
+      {viewRequestDetails && (
+        <RequestDetailsModal
+          request={viewRequestDetails}
+          onClose={() => setViewRequestDetails(null)}
+        />
+      )}
+
       {viewWorkflow && (
-        <WorkflowModal 
-          workflow={viewWorkflow} 
+        <WorkflowModal
+          workflow={viewWorkflow}
           getStatusColor={getStatusColor}
           onClose={() => setViewWorkflow(null)}
           onStartRequest={() => {
@@ -496,6 +505,8 @@ export default function InitiatorDashboard() {
           cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600;
           min-height: 48px; display: flex; align-items: center; justify-content: center;
         }
+        .view-btn { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; border: 1px solid #a5b4fc; }
+        .view-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(55, 48, 163, 0.2); }
         .remarks-btn { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; border: 1px solid #f59e0b; }
         .remarks-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3); }
         .delete-btn { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #dc2626; border: 1px solid #fecaca; }
@@ -637,9 +648,45 @@ export default function InitiatorDashboard() {
   );
 }
 
+
+
+const RequestDetailsModal = ({ request, onClose }) => {
+  let data = {};
+  try {
+    data = request.requestData ? JSON.parse(request.requestData) : {};
+  } catch (e) { }
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Request #{request.id} Details</h3>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        <div className="workflow-content" style={{ padding: '24px' }}>
+          {Object.keys(data).length === 0 ? (
+            <p>No custom data attached to this request.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <tbody>
+                {Object.entries(data).map(([k, v]) => (
+                  <tr key={k}>
+                    <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', fontWeight: '600', width: '40%', background: '#f8fafc' }}>{k}</td>
+                    <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{String(v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // All Components
 const WorkflowCard = ({ workflow, isHovered, onHover, onWorkflowView, onStartRequest }) => (
-  <div 
+  <div
     className={`workflow-card ${isHovered ? 'hovered' : ''}`}
     onMouseEnter={() => onHover(workflow.id)}
     onMouseLeave={() => onHover(null)}
@@ -678,7 +725,7 @@ const WorkflowCard = ({ workflow, isHovered, onHover, onWorkflowView, onStartReq
 );
 
 
-const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelete }) => {
+const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onViewDetails, onDelete }) => {
   const totalLevels = workflow?.approvalLevels?.length || 1;
   const clampedLevel = Math.min(request.currentLevel || 1, totalLevels);
   const progress = Math.min((clampedLevel / totalLevels) * 100, 100);
@@ -699,23 +746,23 @@ const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelet
           const badgeText = isEscalated
             ? "Escalated"
             : isAutoRejected
-            ? "Auto Rejected"
-            : request.status;
+              ? "Auto Rejected"
+              : request.status;
           const badgeClass = isEscalated
             ? "status-escalated"
             : isAutoRejected
-            ? "status-auto-rejected"
-            : "";
+              ? "status-auto-rejected"
+              : "";
           return (
-        <div
-          className={`status-badge ${badgeClass}`}
-          style={{
-            backgroundColor: getStatusColor(request.status),
-            color: "#ffffff",
-          }}
-        >
-          {badgeText}
-        </div>
+            <div
+              className={`status-badge ${badgeClass}`}
+              style={{
+                backgroundColor: getStatusColor(request.status),
+                color: "#ffffff",
+              }}
+            >
+              {badgeText}
+            </div>
           );
         })()}
       </div>
@@ -747,12 +794,15 @@ const RequestCard = ({ request, workflow, getStatusColor, onViewRemarks, onDelet
       </div>
       <div className="card-actions">
         <div className="action-buttons-row">
-        {(request.status === "REJECTED" || request.status === "AUTO_REJECTED") &&
-          request.remarks && (
-            <button className="action-btn remarks-btn" onClick={onViewRemarks}>
-              📝 View Rejection Reason
-            </button>
-          )}
+          <button className="action-btn view-btn" onClick={onViewDetails}>
+            🔍 View Details
+          </button>
+          {(request.status === "REJECTED" || request.status === "AUTO_REJECTED") &&
+            request.remarks && (
+              <button className="action-btn remarks-btn" onClick={onViewRemarks}>
+                📝 View Rejection Reason
+              </button>
+            )}
           <button className="action-btn delete-btn" onClick={onDelete}>
             🗑 Delete Request
           </button>
