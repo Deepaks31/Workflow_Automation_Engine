@@ -46,24 +46,23 @@ public class AuditController {
 
     // 🔹 Get audit logs for a specific request
     @GetMapping("/audit/request/{requestId}")
-    public List<AuditLog> getLogsByRequest(@PathVariable Long requestId) {
+    public List<AuditLog> getLogsByRequest(@PathVariable("requestId") Long requestId) {
         return auditRepo.findByRequestIdOrderByActionAtAsc(requestId);
     }
 
-
     // 🔹 Optionally filter by approver ID
     @GetMapping("/audit")
-    public List<AuditLog> getAuditLogs(@RequestParam(required = false) Long approverId) {
+    public List<AuditLog> getAuditLogs(@RequestParam(value = "approverId", required = false) Long approverId) {
         if (approverId != null) {
             return auditRepo.findByApproverId(approverId);
         }
         return auditRepo.findAll();
     }
+
     @GetMapping("/summary")
     public Map<String, Object> getRequestsSummary(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
         Page<Request> requestPage = requestRepo.findAll(pageable);
 
@@ -99,11 +98,14 @@ public class AuditController {
         try {
             Workflow wf = null;
             // lightweight fetch via workflowId (avoiding new autowire just for this)
-            // We'll reuse requestRepo if needed in future; for now, just assume escalationHours from r.status context
+            // We'll reuse requestRepo if needed in future; for now, just assume
+            // escalationHours from r.status context
             // If escalationHours not easily available, default to NORMAL
             // To avoid circular dep we keep this simple.
-            // For now, mark HIGH_RISK if (now - createdAt) >= 70% of 24h as a safe heuristic.
-            if (r.getCreatedAt() == null || r.getLastActionAt() == null) return "NORMAL";
+            // For now, mark HIGH_RISK if (now - createdAt) >= 70% of 24h as a safe
+            // heuristic.
+            if (r.getCreatedAt() == null || r.getLastActionAt() == null)
+                return "NORMAL";
             long minutes = java.time.temporal.ChronoUnit.MINUTES.between(r.getCreatedAt(), r.getLastActionAt());
             long totalMinutes = 24 * 60L;
             return minutes >= totalMinutes * 0.7 ? "HIGH_RISK" : "NORMAL";
@@ -138,4 +140,23 @@ public class AuditController {
         return analyticsService.getApproverPerformanceRanking();
     }
 
+    // 5. Advanced Audit Logs with filtering and pagination
+    @GetMapping("/auditor/logs")
+    public Map<String, Object> getAuditLogsPaged(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "workflowId", required = false) Long workflowId,
+            @RequestParam(value = "slaRisk", required = false) String slaRisk,
+            @RequestParam(value = "status", required = false) String status) {
+        return analyticsService.getAuditLogsPaged(page, size, startDate, endDate, role, workflowId, slaRisk, status);
+    }
+
+    // 6. Suspicious Activity / Anomalies
+    @GetMapping("/auditor/anomalies")
+    public List<Map<String, Object>> getAnomalies() {
+        return analyticsService.getAnomalies();
+    }
 }

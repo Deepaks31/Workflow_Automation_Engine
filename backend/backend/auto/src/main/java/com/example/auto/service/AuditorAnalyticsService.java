@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.example.auto.dto.AuditLogResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -54,7 +55,8 @@ public class AuditorAnalyticsService {
 
     private double linearRegressionPredictNext(List<Double> ys) {
         int n = ys.size();
-        if (n == 1) return ys.get(0);
+        if (n == 1)
+            return ys.get(0);
         double sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
         for (int i = 0; i < n; i++) {
             double x = i;
@@ -65,7 +67,8 @@ public class AuditorAnalyticsService {
             sumXX += x * x;
         }
         double denom = (n * sumXX - sumX * sumX);
-        if (denom == 0) return ys.get(n - 1);
+        if (denom == 0)
+            return ys.get(n - 1);
         double a = (n * sumXY - sumX * sumY) / denom;
         double b = (sumY - a * sumX) / n;
         double nextX = n;
@@ -82,9 +85,11 @@ public class AuditorAnalyticsService {
         // average approval time per role (hours)
         Map<String, List<Long>> roleDurations = new HashMap<>();
         for (AuditLog log : logs) {
-            if (!"APPROVED".equalsIgnoreCase(log.getAction())) continue;
+            if (!"APPROVED".equalsIgnoreCase(log.getAction()))
+                continue;
             Request r = requests.get(log.getRequestId());
-            if (r == null || r.getCreatedAt() == null || log.getActionAt() == null) continue;
+            if (r == null || r.getCreatedAt() == null || log.getActionAt() == null)
+                continue;
             long hours = ChronoUnit.HOURS.between(r.getCreatedAt(), log.getActionAt());
             roleDurations.computeIfAbsent(log.getRole(), k -> new ArrayList<>()).add(hours);
         }
@@ -132,13 +137,15 @@ public class AuditorAnalyticsService {
         for (Map.Entry<String, List<Request>> e : byDept.entrySet()) {
             String dept = e.getKey();
             List<Request> rs = e.getValue();
-            if (rs.isEmpty()) continue;
+            if (rs.isEmpty())
+                continue;
 
             long total = rs.size();
             long rejected = rs.stream().filter(r -> "REJECTED".equalsIgnoreCase(r.getStatus())).count();
             long slaBreached = rs.stream().filter(r -> {
                 String s = String.valueOf(r.getStatus());
-                return s.startsWith("ESCALATED") || s.startsWith("PENDING_ESCALATED") || "AUTO_REJECTED".equalsIgnoreCase(s);
+                return s.startsWith("ESCALATED") || s.startsWith("PENDING_ESCALATED")
+                        || "AUTO_REJECTED".equalsIgnoreCase(s);
             }).count();
             long highAmount = rs.stream().filter(this::isHighAmountRequest).count();
 
@@ -162,13 +169,16 @@ public class AuditorAnalyticsService {
     private boolean isHighAmountRequest(Request r) {
         try {
             String data = r.getRequestData();
-            if (data == null || !data.contains("amount")) return false;
+            if (data == null || !data.contains("amount"))
+                return false;
             // very lightweight parse: look for "amount":number
             String cleaned = data.replaceAll("\\s", "");
             int idx = cleaned.indexOf("\"amount\"");
-            if (idx < 0) return false;
+            if (idx < 0)
+                return false;
             int colon = cleaned.indexOf(":", idx);
-            if (colon < 0) return false;
+            if (colon < 0)
+                return false;
             int end = colon + 1;
             while (end < cleaned.length() && (Character.isDigit(cleaned.charAt(end)) || cleaned.charAt(end) == '.')) {
                 end++;
@@ -192,12 +202,16 @@ public class AuditorAnalyticsService {
         Map<Long, int[]> approverSla = new HashMap<>(); // [within, total]
 
         for (AuditLog log : logs) {
-            if (!"APPROVED".equalsIgnoreCase(log.getAction())) continue;
-            if (log.getApproverId() == null) continue;
+            if (!"APPROVED".equalsIgnoreCase(log.getAction()))
+                continue;
+            if (log.getApproverId() == null)
+                continue;
             Request r = requests.get(log.getRequestId());
-            if (r == null || r.getCreatedAt() == null || log.getActionAt() == null) continue;
+            if (r == null || r.getCreatedAt() == null || log.getActionAt() == null)
+                continue;
             Workflow wf = workflows.get(r.getWorkflowId());
-            if (wf == null || wf.getEscalationHours() <= 0) continue;
+            if (wf == null || wf.getEscalationHours() <= 0)
+                continue;
 
             long minutes = ChronoUnit.MINUTES.between(r.getCreatedAt(), log.getActionAt());
             approverDurations.computeIfAbsent(log.getApproverId(), k -> new ArrayList<>()).add(minutes);
@@ -205,7 +219,8 @@ public class AuditorAnalyticsService {
             int[] sla = approverSla.computeIfAbsent(log.getApproverId(), k -> new int[2]);
             sla[1] += 1; // total
             long slaMinutes = wf.getEscalationHours() * 60L;
-            if (minutes <= slaMinutes) sla[0] += 1; // within SLA
+            if (minutes <= slaMinutes)
+                sla[0] += 1; // within SLA
         }
 
         List<Map<String, Object>> out = new ArrayList<>();
@@ -213,7 +228,7 @@ public class AuditorAnalyticsService {
             Long approverId = e.getKey();
             List<Long> ds = e.getValue();
             double avgMinutes = ds.stream().mapToLong(Long::longValue).average().orElse(0);
-            int[] sla = approverSla.getOrDefault(approverId, new int[]{0, 0});
+            int[] sla = approverSla.getOrDefault(approverId, new int[] { 0, 0 });
             double slaCompliance = sla[1] == 0 ? 0.0 : (double) sla[0] / sla[1];
 
             Map<String, Object> m = new HashMap<>();
@@ -230,5 +245,175 @@ public class AuditorAnalyticsService {
 
         return out;
     }
-}
 
+    // 5. Advanced Audit Logs with Pagination & Filtering
+    public Map<String, Object> getAuditLogsPaged(
+            int page, int size, String startDate, String endDate,
+            String role, Long workflowId, String slaRisk, String status) {
+
+        List<Request> requests = requestRepo.findAll();
+        Map<Long, Workflow> workflows = workflowRepo.findAll().stream()
+                .collect(Collectors.toMap(Workflow::getId, w -> w));
+        Map<Long, User> users = userRepo.findAll().stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        List<AuditLogResponse> logsList = new ArrayList<>();
+
+        for (Request r : requests) {
+            Workflow wf = workflows.get(r.getWorkflowId());
+            User initiator = users.get(r.getInitiatorId());
+
+            AuditLogResponse resp = new AuditLogResponse();
+            resp.setRequestId(r.getId());
+            resp.setWorkflowId(r.getWorkflowId());
+            resp.setWorkflowName(wf != null ? wf.getName() : "Unknown");
+            resp.setInitiatorName(initiator != null ? initiator.getName() : "Unknown");
+            resp.setCurrentStatus(r.getStatus());
+            resp.setApprovalLevel(r.getCurrentLevel());
+
+            Long approverId = r.getAssignees().get(r.getCurrentLevel());
+            resp.setAssignedApprover(approverId != null ? approverId : r.getApprovedBy());
+
+            LocalDateTime createdAt = r.getCreatedAt();
+            if (createdAt != null && wf != null && wf.getEscalationHours() > 0) {
+                resp.setSlaDeadline(createdAt.plusHours(wf.getEscalationHours()));
+            }
+
+            resp.setActualCompletionTime(r.getLastActionAt());
+
+            boolean isBreach = false;
+            if (resp.getSlaDeadline() != null && resp.getActualCompletionTime() != null) {
+                isBreach = resp.getActualCompletionTime().isAfter(resp.getSlaDeadline());
+            } else if (r.getStatus() != null
+                    && (r.getStatus().startsWith("ESCALATED") || r.getStatus().equals("AUTO_REJECTED"))) {
+                isBreach = true;
+            }
+            resp.setSlaBreach(isBreach ? "Yes" : "No");
+            resp.setTimestamp(r.getCreatedAt());
+            resp.setRequestData(r.getRequestData());
+            resp.setRemarks(r.getRemarks());
+
+            // Role mapping based on workflow levels
+            if (wf != null && wf.getApprovalLevels() != null) {
+                wf.getApprovalLevels().stream()
+                        .filter(l -> l.getLevelNo() == r.getCurrentLevel())
+                        .findFirst()
+                        .ifPresent(al -> resp.setRole(al.getRole()));
+            }
+
+            logsList.add(resp);
+        }
+
+        // Apply filters
+        List<AuditLogResponse> filtered = logsList.stream().filter(log -> {
+            boolean match = true;
+            if (startDate != null && !startDate.isEmpty()) {
+                LocalDateTime start = LocalDateTime.parse(startDate + "T00:00:00");
+                if (log.getTimestamp() != null && log.getTimestamp().isBefore(start))
+                    match = false;
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                LocalDateTime end = LocalDateTime.parse(endDate + "T23:59:59");
+                if (log.getTimestamp() != null && log.getTimestamp().isAfter(end))
+                    match = false;
+            }
+            if (role != null && !role.isEmpty()) {
+                if (log.getRole() == null || !log.getRole().equalsIgnoreCase(role))
+                    match = false;
+            }
+            if (workflowId != null) {
+                if (!workflowId.equals(log.getWorkflowId()))
+                    match = false;
+            }
+            if (slaRisk != null && !slaRisk.isEmpty()) {
+                if (!slaRisk.equalsIgnoreCase(log.getSlaBreach()))
+                    match = false;
+            }
+            if (status != null && !status.isEmpty()) {
+                if (log.getCurrentStatus() == null) {
+                    match = false;
+                } else if (status.equalsIgnoreCase("ESCALATED")) {
+                    if (!log.getCurrentStatus().toUpperCase().contains("ESCALATED")) {
+                        match = false;
+                    }
+                } else if (!log.getCurrentStatus().equalsIgnoreCase(status)) {
+                    match = false;
+                }
+            }
+            return match;
+        }).collect(Collectors.toList());
+
+        // Sort descending by timestamp
+        filtered.sort((a, b) -> {
+            if (a.getTimestamp() == null)
+                return 1;
+            if (b.getTimestamp() == null)
+                return -1;
+            return b.getTimestamp().compareTo(a.getTimestamp());
+        });
+
+        // Paginate
+        int totalElements = filtered.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        int startObj = page * size;
+        int endObj = Math.min(startObj + size, totalElements);
+        List<AuditLogResponse> pagedList = startObj < totalElements ? filtered.subList(startObj, endObj)
+                : new ArrayList<>();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("data", pagedList);
+        result.put("currentPage", page);
+        result.put("totalPages", totalPages);
+        result.put("totalElements", totalElements);
+        return result;
+    }
+
+    // 6. Anomaly Detection (Suspicious Activity)
+    public List<Map<String, Object>> getAnomalies() {
+        List<AuditLog> logs = auditLogRepo.findAll();
+        Map<Long, Request> requests = requestRepo.findAll().stream()
+                .collect(Collectors.toMap(Request::getId, r -> r));
+
+        List<Map<String, Object>> anomalies = new ArrayList<>();
+
+        for (AuditLog log : logs) {
+            String type = null;
+            String desc = null;
+
+            if ("APPROVED".equalsIgnoreCase(log.getAction()) || "REJECTED".equalsIgnoreCase(log.getAction())) {
+                Request r = requests.get(log.getRequestId());
+                if (r != null && r.getCreatedAt() != null && log.getActionAt() != null) {
+                    long diffSeconds = ChronoUnit.SECONDS.between(r.getCreatedAt(), log.getActionAt());
+                    if (diffSeconds < 10 && diffSeconds >= 0) {
+                        type = "FAST_ACTION";
+                        desc = "Action taken in " + diffSeconds + " seconds by User " + log.getApproverId();
+                    }
+                }
+            }
+
+            if (log.getActionAt() != null && log.getApproverId() != null) {
+                int hour = log.getActionAt().getHour();
+                if (hour < 8 || hour >= 18) {
+                    type = "OUT_OF_HOURS";
+                    desc = String.format("Action taken at %02d:00 by User %d", hour, log.getApproverId());
+                }
+            }
+
+            if (type != null) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("requestId", log.getRequestId());
+                m.put("approverId", log.getApproverId());
+                m.put("action", log.getAction());
+                m.put("time", log.getActionAt());
+                m.put("type", type);
+                m.put("description", desc);
+                anomalies.add(m);
+            }
+        }
+
+        return anomalies.stream()
+                .sorted((a, b) -> ((LocalDateTime) b.get("time")).compareTo((LocalDateTime) a.get("time")))
+                .limit(20) // show top 20
+                .collect(Collectors.toList());
+    }
+}

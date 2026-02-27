@@ -17,6 +17,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.1",
     "reactflow": "^11.11.4",
+    "recharts": "^3.7.0",
     "sockjs-client": "^1.6.1"
   },
   "devDependencies": {

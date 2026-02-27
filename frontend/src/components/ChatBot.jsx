@@ -245,7 +245,7 @@ const ChatBot = () => {
         </button>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes popup {
           0% { opacity: 0; transform: scale(0.8) translateY(20px); }
           50% { transform: scale(1.02) translateY(-5px); }
