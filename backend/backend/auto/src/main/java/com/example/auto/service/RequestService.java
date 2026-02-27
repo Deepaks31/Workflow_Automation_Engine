@@ -50,6 +50,25 @@ public class RequestService {
         req.setStatus("PENDING");
         req.setCurrentLevel(1);
 
+        if (dto.getAssignees() != null) {
+            for (ApprovalLevel level : wf.getApprovalLevels()) {
+                Long assigneeId = dto.getAssignees().get(level.getLevelNo());
+                if (assigneeId == null) {
+                    throw new RuntimeException("Missing assignee for level " + level.getLevelNo());
+                }
+                User assignee = userRepo.findById(assigneeId)
+                        .orElseThrow(() -> new RuntimeException("User not found for level " + level.getLevelNo()));
+
+                if (!assignee.getRole().equalsIgnoreCase(level.getRole())) {
+                    throw new RuntimeException("Invalid role for assigned user at level " + level.getLevelNo()
+                            + ". Expected: " + level.getRole());
+                }
+            }
+            req.setAssignees(dto.getAssignees());
+        } else if (wf.getApprovalLevels() != null && !wf.getApprovalLevels().isEmpty()) {
+            throw new RuntimeException("Assignees must be provided for the workflow.");
+        }
+
         try {
             req.setRequestData(objectMapper.writeValueAsString(dto.getData()));
         } catch (JsonProcessingException e) {
@@ -128,8 +147,7 @@ public class RequestService {
                 "APPROVED",
                 oldStatus,
                 saved.getStatus(),
-                "Approved by " + currentApproval.getRole()
-        );
+                "Approved by " + currentApproval.getRole());
 
         return saved;
     }
@@ -180,12 +198,11 @@ public class RequestService {
                 "REJECTED",
                 oldStatus,
                 "REJECTED",
-                dto.getRemarks()   // ✅ remarks in audit
+                dto.getRemarks() // ✅ remarks in audit
         );
 
         return saved;
     }
-
 
     // ================= ROLE BASED =================
     public List<Map<String, Object>> getPendingForManagerWithNames(Long managerId) {
@@ -202,7 +219,10 @@ public class RequestService {
                 .toList();
     }
 
-    /** Adds workflow name, risk score, priority, and escalation timing for approver dashboards */
+    /**
+     * Adds workflow name, risk score, priority, and escalation timing for approver
+     * dashboards
+     */
     private Map<String, Object> enrichPendingItem(Request r) {
         Map<String, Object> m = new HashMap<>();
         m.put("request", r);
@@ -278,8 +298,7 @@ public class RequestService {
                 request.getStatus(),
                 request.getCurrentLevel(),
                 type,
-                request.getLastActionAt()
-        );
+                request.getLastActionAt());
         String destination = "/topic/initiator." + request.getInitiatorId();
         messagingTemplate.convertAndSend(destination, event);
     }

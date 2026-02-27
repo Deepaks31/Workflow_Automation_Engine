@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Entity
 @Table(name = "requests")
@@ -39,6 +41,12 @@ public class Request {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String requestData; // 🔥 JSON STRING (DYNAMIC)
+
+    @ElementCollection
+    @CollectionTable(name = "request_assignees", joinColumns = @JoinColumn(name = "request_id"))
+    @MapKeyColumn(name = "level_no")
+    @Column(name = "user_id")
+    private Map<Integer, Long> assignees = new HashMap<>();
 
     // 🔥 AUTO SET TIMESTAMPS
     @PrePersist

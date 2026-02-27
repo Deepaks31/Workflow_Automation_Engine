@@ -23,20 +23,27 @@ public class UserService {
         user.setStatus(UserStatus.PENDING);
         return userRepo.save(user);
     }
+
     public List<User> getActiveUsers() {
-        return userRepo.findByStatusAndRoleNot(UserStatus.ACTIVE,"ADMIN");
+        return userRepo.findByStatusAndRoleNot(UserStatus.ACTIVE, "ADMIN");
     }
+
+    public List<User> getUsersByRole(String role) {
+        return userRepo.findByStatusAndRole(UserStatus.ACTIVE, role);
+    }
+
     public User approveUser(Long id) {
         User user = userRepo.findById(id)
                 .orElseThrow();
         user.setStatus(UserStatus.ACTIVE);
         return userRepo.save(user);
     }
+
     public void rejectUser(Long id) {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setStatus(UserStatus.REJECTED);   // or user.setStatus("REJECTED");
+        user.setStatus(UserStatus.REJECTED); // or user.setStatus("REJECTED");
         userRepo.save(user);
     }
 }

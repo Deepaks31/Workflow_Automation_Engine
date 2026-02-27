@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 export default function StartRequestModal({ workflow, onClose }) {
@@ -9,9 +9,33 @@ export default function StartRequestModal({ workflow, onClose }) {
 
   const [form, setForm] = useState({});
   const [error, setError] = useState("");
+  const [roleUsers, setRoleUsers] = useState({});
+  const [assignees, setAssignees] = useState({});
 
   const initiatorId = Number(localStorage.getItem("userId"));
   const maxLimit = Number(workflow?.conditionValue) || null;
+
+  useEffect(() => {
+    const fetchUsersForRoles = async () => {
+      const roles = [...new Set(workflow.approvalLevels?.map(l => l.role) || [])];
+      const usersData = {};
+      for (const role of roles) {
+        try {
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/users/role/${role}`);
+          usersData[role] = res.data;
+        } catch (err) {
+          console.error("Error fetching users for role", role, err);
+        }
+      }
+      setRoleUsers(usersData);
+    };
+    fetchUsersForRoles();
+  }, [workflow]);
+
+  const handleAssigneeChange = (levelNo, userId) => {
+    setAssignees({ ...assignees, [levelNo]: Number(userId) });
+    setError(""); // Clear error when assignee is selected
+  };
 
   console.log(workflow)
 
@@ -47,11 +71,22 @@ export default function StartRequestModal({ workflow, onClose }) {
       return;
     }
 
+    // Validate assignees
+    if (workflow.approvalLevels?.length > 0) {
+      for (const level of workflow.approvalLevels) {
+        if (!assignees[level.levelNo]) {
+          setError(`Please select an approver for Level ${level.levelNo} (${level.role})`);
+          return;
+        }
+      }
+    }
+
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/requests`, {
         workflowId: workflow.id,
         initiatorId,
         data: form,
+        assignees: assignees
       });
 
       alert("Request Submitted Successfully");
@@ -123,6 +158,26 @@ export default function StartRequestModal({ workflow, onClose }) {
             </>
           )}
 
+          {workflow.approvalLevels?.length > 0 && (
+            <div className="approval-levels-section" style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <h4 style={{ marginBottom: '10px', fontSize: '15px', color: '#1f2937' }}>Assign Approvers</h4>
+              {workflow.approvalLevels.map(level => (
+                <div key={level.levelNo} className="field">
+                  <label>Level {level.levelNo} ({level.role})</label>
+                  <select
+                    value={assignees[level.levelNo] || ""}
+                    onChange={e => handleAssigneeChange(level.levelNo, e.target.value)}
+                  >
+                    <option value="">-- Select Approver --</option>
+                    {roleUsers[level.role]?.map(user => (
+                      <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+
           {error && <p className="error">{error}</p>}
 
           <div className="actions">
@@ -174,7 +229,7 @@ export default function StartRequestModal({ workflow, onClose }) {
           margin-bottom: 6px;
         }
 
-        input, textarea {
+        input, textarea, select {
           width: 100%;
           padding: 10px 12px;
           border-radius: 10px;
@@ -183,7 +238,7 @@ export default function StartRequestModal({ workflow, onClose }) {
           transition: all .2s ease;
         }
 
-        input:focus, textarea:focus {
+        input:focus, textarea:focus, select:focus {
           border-color: #2563eb;
           outline: none;
           box-shadow: 0 0 0 3px rgba(37,99,235,0.15);

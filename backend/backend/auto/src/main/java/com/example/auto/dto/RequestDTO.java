@@ -10,8 +10,7 @@ public class RequestDTO {
     private Long initiatorId;
     private String remarks;
     private Map<String, Object> data;
-
-
+    private Map<Integer, Long> assignees;
 
     public String getRemarks() {
         return remarks;
