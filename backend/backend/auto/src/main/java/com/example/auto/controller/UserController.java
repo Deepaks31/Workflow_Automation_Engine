@@ -16,7 +16,7 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/role/{role}")
-    public List<User> getUsersByRole(@PathVariable String role) {
+    public List<User> getUsersByRole(@PathVariable("role") String role) {
         return userService.getUsersByRole(role);
     }
 }

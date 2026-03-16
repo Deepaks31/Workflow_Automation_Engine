@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import AuditLogsTable from "./AuditLogsTable";
 import AuditAnalytics from "./AuditAnalytics";
+import { useNavigate } from "react-router-dom";
 
 export default function AuditorDashboard() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
 
   // Swipe Navigation Logic - High Threshold to avoid accidental trigger
   const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
@@ -76,7 +78,16 @@ export default function AuditorDashboard() {
               <div className="tab-bg" style={{ transform: `translateX(${activeIndex * 100}%)` }}></div>
             </div>
 
-            <button className="logout-btn" onClick={handleLogout}>🚪 Logout</button>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+              <button
+                className="logout-btn"
+                style={{ background: "#e0e7ff", borderColor: "#a5b4fc", color: "#3730a3" }}
+                onClick={() => navigate("/meetings")}
+              >
+                📅 Meetings
+              </button>
+              <button className="logout-btn" onClick={handleLogout}>🚪 Logout</button>
+            </div>
           </div>
         </header>
 

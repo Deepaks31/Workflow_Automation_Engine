@@ -169,7 +169,7 @@ export default function StartRequestModal({ workflow, onClose }) {
                     onChange={e => handleAssigneeChange(level.levelNo, e.target.value)}
                   >
                     <option value="">-- Select Approver --</option>
-                    {roleUsers[level.role]?.map(user => (
+                    {Array.isArray(roleUsers[level.role]) && roleUsers[level.role].map((user) => (
                       <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
                     ))}
                   </select>

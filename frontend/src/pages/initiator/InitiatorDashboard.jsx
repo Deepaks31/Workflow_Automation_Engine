@@ -4,6 +4,7 @@ import axios from "axios";
 import StartRequestModal from "./StartRequestModal";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
+import { useNavigate } from "react-router-dom";
 
 export default function InitiatorDashboard() {
   const [workflows, setWorkflows] = useState([]);
@@ -18,6 +19,7 @@ export default function InitiatorDashboard() {
   const [scrolled, setScrolled] = useState(false);
   const [liveEvent, setLiveEvent] = useState(null);
   const initiatorId = Number(localStorage.getItem("userId"));
+  const navigate = useNavigate();
 
   // Status color utility function
   const getStatusColor = (status) => {
@@ -177,6 +179,9 @@ export default function InitiatorDashboard() {
                   <div className="stat-label">Pending Requests</div>
                 </div>
               </div>
+              <button className="meetings-btn" onClick={() => navigate("/meetings")}>
+                📅 Meetings
+              </button>
               <button className="logout-btn" onClick={handleLogout}>
                 🚪 Logout
               </button>
@@ -373,6 +378,18 @@ export default function InitiatorDashboard() {
         }
         .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; font-weight: 600; }
 
+        .meetings-btn {
+          background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; border: 1px solid #a5b4fc;
+          padding: 12px 24px; border-radius: 12px; font-size: 15px; font-weight: 600;
+          cursor: pointer; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+          animation: fadeInUp 1s ease-out 0.6s both;
+        }
+        .meetings-btn:hover { 
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 0 8px 25px rgba(55, 48, 163, 0.2); 
+        }
+
         .logout-btn {
           background: linear-gradient(135deg, #f8fafc, #f1f5f9); color: #64748b; border: 1px solid #e2e8f0;
           padding: 12px 24px; border-radius: 12px; font-size: 15px; font-weight: 600;
@@ -505,12 +522,12 @@ export default function InitiatorDashboard() {
           cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600;
           min-height: 48px; display: flex; align-items: center; justify-content: center;
         }
-        .view-btn { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; border: 1px solid #a5b4fc; }
-        .view-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(55, 48, 163, 0.2); }
-        .remarks-btn { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; border: 1px solid #f59e0b; }
-        .remarks-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3); }
-        .delete-btn { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #dc2626; border: 1px solid #fecaca; }
-        .delete-btn:hover { background: #fecaca; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(220,38,38,0.3); }
+        .view-btn, .remarks-btn, .delete-btn { 
+          background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; border: 1px solid #a5b4fc; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; overflow: hidden;
+        }
+        .view-btn:hover, .remarks-btn:hover, .delete-btn:hover { 
+          transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 25px rgba(55, 48, 163, 0.2); 
+        }
 
         /* ✅ FIXED MODAL - NO OVERLAP GUARANTEED */
         .overlay {

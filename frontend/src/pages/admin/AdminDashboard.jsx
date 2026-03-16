@@ -11,7 +11,7 @@ export default function AdminDashboard() {
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("workflows");  
+  const [activeTab, setActiveTab] = useState("workflows");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -145,15 +145,15 @@ export default function AdminDashboard() {
                   Admin Dashboard
                 </h1>
                 <p className="page-subtitle">
-                  {activeTab === "workflows" 
-                    ? "Manage workflows and approval processes" 
+                  {activeTab === "workflows"
+                    ? "Manage workflows and approval processes"
                     : `Manage user access and permissions (${users.length} users)`
                   }
                 </p>
               </div>
               <div className="header-actions">
                 <div className="dropdown-container">
-                  <button 
+                  <button
                     className="dropdown-toggle"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                   >
@@ -163,10 +163,10 @@ export default function AdminDashboard() {
                     {activeTab === "workflows" ? "Workflows" : "Users"}
                     <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>▼</span>
                   </button>
-                  
+
                   {dropdownOpen && (
                     <div className="dropdown-menu">
-                      <button 
+                      <button
                         className={`dropdown-item ${activeTab === "workflows" ? "active" : ""}`}
                         onClick={() => {
                           setActiveTab("workflows");
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
                       >
                         <span className="workflow-icon">⚙️</span> Workflows
                       </button>
-                      <button 
+                      <button
                         className={`dropdown-item ${activeTab === "users" ? "active" : ""}`}
                         onClick={() => {
                           setActiveTab("users");
@@ -213,6 +213,9 @@ export default function AdminDashboard() {
                       </button>
                     </>
                   )}
+                  <button className="meetings-btn" onClick={() => navigate("/meetings")}>
+                    📅 Meetings
+                  </button>
                   <button className="logout-btn" onClick={handleLogout}>
                     🚪 Logout
                   </button>
@@ -220,7 +223,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </header>
-          
+
           <main className="main-content">
             <section className="content-section">
               <div className="section-header">
@@ -229,7 +232,7 @@ export default function AdminDashboard() {
                   {activeTab === "workflows" ? "Manage & Configure" : "Access Control"}
                 </div>
               </div>
-              
+
               {loading ? (
                 <LoadingSpinner />
               ) : activeTab === "workflows" ? (
@@ -251,8 +254,8 @@ export default function AdminDashboard() {
                   </div>
                 )
               ) : (
-                <UsersTable 
-                  users={users} 
+                <UsersTable
+                  users={users}
                   onRevoke={revokeAccess}
                 />
               )}
@@ -542,6 +545,14 @@ export default function AdminDashboard() {
           background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
           color: white;
           box-shadow: 0 6px 25px rgba(59, 130, 246, 0.4);
+        }
+        
+        .meetings-btn {
+          padding: 12px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+          background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .meetings-btn:hover { 
+          transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 25px rgba(55, 48, 163, 0.2); 
         }
         
         .create-btn:hover { 
@@ -1019,8 +1030,8 @@ const WorkflowCard = ({ workflow, onEdit, onDelete }) => (
         <div className="meta-row">
           <span className="meta-label">Approval Levels:</span>
           <span className="meta-value">
-            {workflow.approvals?.length > 0 
-              ? workflow.approvals.join(' → ') 
+            {workflow.approvals?.length > 0
+              ? workflow.approvals.join(' → ')
               : 'Direct approval'
             }
           </span>
@@ -1070,8 +1081,8 @@ const UsersTable = ({ users, onRevoke }) => (
                   <div className="user-role">{user.role}</div>
                 </td>
                 <td>
-                  <button 
-                    className="revoke-btn" 
+                  <button
+                    className="revoke-btn"
                     onClick={() => onRevoke(user.id)}
                   >
                     ❌ Revoke
@@ -1102,13 +1113,13 @@ const EmptyState = () => (
     <div className="empty-icon">📋</div>
     <h3>No workflows yet</h3>
     <p>Create your first workflow to get started with the approval process</p>
-    <button 
-      className="create-btn" 
-      style={{ 
-        margin: '0 auto', 
+    <button
+      className="create-btn"
+      style={{
+        margin: '0 auto',
         background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-        color: 'white', 
-        padding: '14px 32px', 
+        color: 'white',
+        padding: '14px 32px',
         fontSize: '15px',
         fontWeight: '600',
         borderRadius: '12px',

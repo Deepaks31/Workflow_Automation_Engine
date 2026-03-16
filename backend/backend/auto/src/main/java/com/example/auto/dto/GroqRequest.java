@@ -13,4 +13,13 @@ public class GroqRequest {
     private String model;
     private List<GroqMessage> messages;
     private boolean stream;
+    
+    @com.fasterxml.jackson.annotation.JsonProperty("response_format")
+    private java.util.Map<String, String> responseFormat;
+
+    public GroqRequest(String model, List<GroqMessage> messages, boolean stream) {
+        this.model = model;
+        this.messages = messages;
+        this.stream = stream;
+    }
 }

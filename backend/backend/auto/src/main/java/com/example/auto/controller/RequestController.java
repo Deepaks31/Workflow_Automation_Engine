@@ -39,23 +39,23 @@ public class RequestController {
     }
 
     @GetMapping("/initiator/{id}")
-    public List<Request> myRequests(@PathVariable Long id) {
+    public List<Request> myRequests(@PathVariable("id") Long id) {
         return service.findByInitiator(id);
     }
 
     @GetMapping("/pending")
-    public List<Request> getPendingByLevel(@RequestParam int level) {
+    public List<Request> getPendingByLevel(@RequestParam("level") int level) {
         return requestRepo.findByStatusAndCurrentLevel("PENDING", level);
     }
 
     @PutMapping("/{id}/approve")
-    public Request approve(@PathVariable Long id,
+    public Request approve(@PathVariable("id") Long id,
                            @RequestBody Map<String, Long> body) {
         return service.approveRequest(id, body.get("approverId"));
     }
 
     @PutMapping("/{id}/reject")
-    public Request reject(@PathVariable Long id,
+    public Request reject(@PathVariable("id") Long id,
                           @RequestBody ActionRequestDto dto) {
 
         return service.reject(id, dto);
@@ -64,24 +64,24 @@ public class RequestController {
 
     // ✅ MANAGER
     @GetMapping("/pending/manager/{managerId}/view")
-    public List<Map<String, Object>> managerView(@PathVariable Long managerId) {
+    public List<Map<String, Object>> managerView(@PathVariable("managerId") Long managerId) {
         return service.getPendingForManagerWithNames(managerId);
     }
 
     // ✅ FINANCE
     @GetMapping("/pending/finance/{financeId}/view")
-    public List<Map<String, Object>> financeView(@PathVariable Long financeId) {
+    public List<Map<String, Object>> financeView(@PathVariable("financeId") Long financeId) {
         return service.getPendingForFinanceWithNames(financeId);
     }
 
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable("id") Long id) {
         service.deleteRequest(id);
     }
 
     @GetMapping("/{id}")
-    public Request getById(@PathVariable Long id) {
+    public Request getById(@PathVariable("id") Long id) {
         return requestRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
     }

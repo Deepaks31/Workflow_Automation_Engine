@@ -28,14 +28,14 @@ public class WorkflowController {
 
     @PutMapping("/{id}")
     public Workflow update(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody Workflow workflow
     ) {
         return workflowService.update(id, workflow);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable("id") Long id) {
         workflowService.delete(id);
     }
 }

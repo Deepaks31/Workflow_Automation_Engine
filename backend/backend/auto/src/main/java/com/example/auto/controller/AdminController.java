@@ -21,19 +21,19 @@ public class AdminController {
         return userService.getActiveUsers();
     }
     @PutMapping("/users/{id}/revoke")
-    public String revokeAccess(@PathVariable Long id) {
+    public String revokeAccess(@PathVariable("id") Long id) {
         userService.rejectUser(id);
         return "User access revoked";
     }
 
     @GetMapping("/approve/{id}")
-    public String approve(@PathVariable Long id) {
+    public String approve(@PathVariable("id") Long id) {
         userService.approveUser(id);
         return "User approved successfully";
     }
 
     @GetMapping("/reject/{id}")
-    public String reject(@PathVariable Long id) {
+    public String reject(@PathVariable("id") Long id) {
         userService.rejectUser(id);
         return "User rejected successfully";
     }

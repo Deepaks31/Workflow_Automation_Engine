@@ -1,6 +1,7 @@
 // ApproverDashboard.jsx - COMPLETE PREMIUM VERSION (Matching Initiator Style)
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function ApproverDashboard() {
   const [requests, setRequests] = useState([]);
@@ -10,6 +11,7 @@ export default function ApproverDashboard() {
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
   const approverId = Number(localStorage.getItem("userId"));
+  const navigate = useNavigate();
 
   // Load requests with auto-refresh
   const loadRequests = useCallback(() => {
@@ -105,6 +107,9 @@ export default function ApproverDashboard() {
                   <div className="stat-label">Pending Requests</div>
                 </div>
               </div>
+              <button className="meetings-btn" onClick={() => navigate("/meetings")}>
+                📅 Meetings
+              </button>
               <button className="logout-btn" onClick={handleLogout}>
                 🚪 Logout
               </button>
@@ -265,6 +270,18 @@ export default function ApproverDashboard() {
           line-height: 1; display: block;
         }
         .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; font-weight: 600; }
+
+        .meetings-btn {
+          background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; border: 1px solid #a5b4fc;
+          padding: 12px 24px; border-radius: 12px; font-size: 15px; font-weight: 600;
+          cursor: pointer; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+          animation: fadeInUp 1s ease-out 0.6s both;
+        }
+        .meetings-btn:hover { 
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 0 8px 25px rgba(55, 48, 163, 0.2); 
+        }
 
         .logout-btn {
           background: linear-gradient(135deg, #f8fafc, #f1f5f9); color: #64748b; border: 1px solid #e2e8f0;

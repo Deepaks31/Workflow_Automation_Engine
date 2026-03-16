@@ -13,6 +13,14 @@ import AuditorDashboard from "./pages/auditor/AuditorDashboard";
 import HomeDashboard from "./components/HomeDashboard";
 import ChatBot from "./components/ChatBot"; // Add ChatBot import
 
+// New Modules
+import NotificationCenter from "./pages/notifications/NotificationCenter";
+import MeetingList from "./pages/meetings/MeetingList";
+import MeetingScheduler from "./pages/meetings/MeetingScheduler";
+import MeetingDetails from "./pages/meetings/MeetingDetails";
+import MomCreator from "./pages/mom/MomCreator";
+import MomDetails from "./pages/mom/MomDetails";
+
 function App() {
   return (
     <>
@@ -25,6 +33,14 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+
+        {/* Global Authenticated Routes */}
+        <Route path="/notifications" element={<ProtectedRoute><NotificationCenter /></ProtectedRoute>} />
+        <Route path="/meetings" element={<ProtectedRoute><MeetingList /></ProtectedRoute>} />
+        <Route path="/meetings/create" element={<ProtectedRoute><MeetingScheduler /></ProtectedRoute>} />
+        <Route path="/meetings/:id" element={<ProtectedRoute><MeetingDetails /></ProtectedRoute>} />
+        <Route path="/meetings/:id/mom/create" element={<ProtectedRoute><MomCreator /></ProtectedRoute>} />
+        <Route path="/meetings/:id/mom" element={<ProtectedRoute><MomDetails /></ProtectedRoute>} />
 
         {/* Admin Routes */}
         <Route
