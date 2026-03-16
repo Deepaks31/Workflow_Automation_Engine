@@ -98,8 +98,12 @@ public class MomService {
         String systemPrompt = "You are an AI assistant tasked with parsing meeting discussion notes. " +
                 "You must strictly return a valid JSON object. " +
                 "The JSON object must have exactly three keys: 'summary', 'keyDecisions', and 'actionItems'. " +
-                "The VALUE for each of these keys MUST be a single formatted string (use bullet points inside the string if needed). " +
-                "Do NOT return arrays. Do not include any dialogue outside the JSON.";
+                "The VALUE for each of these keys MUST be a single formatted string containing newline characters (\\n) to break the text into multiple lines. " +
+                "CRITICAL INSTRUCTION: Ensure EVERY field ('summary', 'keyDecisions', and 'actionItems') is highly detailed, comprehensive, and AT LEAST 500 characters long each. " +
+                "Specifically: " +
+                "1. 'summary' MUST be written across 3 to 4 distinct paragraphs, separated by double newlines (\\n\\n). " +
+                "2. 'keyDecisions' and 'actionItems' MUST be formatted as a detailed list with at least 3 to 4 long bullet points, separated by newlines (\\n). " +
+                "Do NOT return JSON arrays. Do not include any dialogue outside the JSON.";
 
         List<GroqMessage> messages = new ArrayList<>();
         messages.add(new GroqMessage("system", systemPrompt));
