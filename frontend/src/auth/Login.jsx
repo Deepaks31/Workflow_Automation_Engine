@@ -56,11 +56,17 @@ export default function Login() {
         default: navigate("/");
       }
     } catch (err) {
-      setError(
-        err?.response?.data ||
-        "Login failed. Please check credentials or approval status."
-      );
-    } finally {
+  console.log(err);
+
+  const errorMessage =
+    err?.response?.data?.message ||
+    err?.response?.data?.error ||
+    (typeof err?.response?.data === "string"
+      ? err.response.data
+      : "Login failed. Please check credentials.");
+
+  setError(errorMessage);
+} finally {
       setLoading(false);
     }
   };

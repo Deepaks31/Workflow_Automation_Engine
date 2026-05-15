@@ -197,7 +197,10 @@ export default function AuditLogsTable() {
                     {loading ? (
                         <div className="loading-state">Loading logs...</div>
                     ) : filteredLogs.length === 0 ? (
-                        <div className="empty-state">No audit logs found.</div>
+                        <div className="empty-state">
+                            <span className="empty-state-icon">🔍</span>
+                            <span>No audit logs found.</span>
+                        </div>
                     ) : (
                         <table className="logs-table">
                             <thead>
@@ -428,6 +431,29 @@ export default function AuditLogsTable() {
         }
         .breach-pill.yes { background: #fee2e2; color: #dc2626; }
         .breach-pill.no { background: #d1fae5; color: #10b981; }
+
+        .loading-state {
+          display: flex; align-items: center; justify-content: center;
+          min-height: 300px; color: #64748b; font-size: 16px; font-weight: 600;
+        }
+        
+        .empty-state {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          min-height: 250px; color: #64748b; font-size: 16px; font-weight: 600;
+          background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+          margin: 20px; transition: all 0.3s ease; cursor: default;
+        }
+        .empty-state:hover {
+          background: #ffffff; border-color: #3b82f6; color: #3b82f6;
+          transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+        }
+        .empty-state-icon {
+          font-size: 36px; margin-bottom: 12px; display: inline-block;
+          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .empty-state:hover .empty-state-icon {
+          transform: scale(1.2) rotate(-15deg);
+        }
 
         .pagination {
           display: flex; justify-content: space-between; align-items: center;

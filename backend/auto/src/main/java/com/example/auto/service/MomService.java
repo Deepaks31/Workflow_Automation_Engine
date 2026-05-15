@@ -99,7 +99,7 @@ public class MomService {
                 "You must strictly return a valid JSON object. " +
                 "The JSON object must have exactly three keys: 'summary', 'keyDecisions', and 'actionItems'. " +
                 "The VALUE for each of these keys MUST be a single formatted string containing newline characters (\\n) to break the text into multiple lines. " +
-                "CRITICAL INSTRUCTION: Ensure EVERY field ('summary', 'keyDecisions', and 'actionItems') is highly detailed, comprehensive, and AT LEAST 500 characters long each. " +
+                "CRITICAL INSTRUCTION: Ensure EVERY field ('summary', 'keyDecisions', and 'actionItems') is highly detailed, comprehensive, and AT LEAST 250 characters long each. " +
                 "Specifically: " +
                 "1. 'summary' MUST be written across 3 to 4 distinct paragraphs, separated by double newlines (\\n\\n). " +
                 "2. 'keyDecisions' and 'actionItems' MUST be formatted as a detailed list with at least 3 to 4 long bullet points, separated by newlines (\\n). " +
